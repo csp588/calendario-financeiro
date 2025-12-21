@@ -78,6 +78,11 @@ function FinancialCalendar() {
     amount: '',
     type: 'income'
   });
+  const [savings, setSavings] = useState(0);
+  const [savingsGoal, setSavingsGoal] = useState(0);
+  const [showSavingsModal, setShowSavingsModal] = useState(false);
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferType, setTransferType] = useState('deposit');
   const [noteText, setNoteText] = useState('');
   const [reminderData, setReminderData] = useState({
     text: '',
@@ -168,6 +173,8 @@ function FinancialCalendar() {
         setReminders(data.reminders || {});
         setSettings(data.settings || settings);
         setRecurringTransactions(data.recurringTransactions || []);
+         setSavings(data.savings || 0);
+      setSavingsGoal(data.savingsGoal || 0);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -183,7 +190,9 @@ function FinancialCalendar() {
           notes,
           reminders,
           settings,
-          recurringTransactions
+          recurringTransactions,
+          savings,
+          savingsGoal
         });
       }, 1000); // Debounce de 1 segundo
       
@@ -386,7 +395,37 @@ function FinancialCalendar() {
   const handleDeleteRecurring = (id) => {
     setRecurringTransactions(prev => prev.filter(r => r.id !== id));
   };
+  // Funções do Cofre
+  const handleTransfer = () => {
+    const amount = parseFloat(transferAmount);
+    if (!amount || amount <= 0) {
+      alert('Digite um valor válido!');
+      return;
+    }
 
+    if (transferType === 'deposit') {
+      // Transferir do saldo para o cofre
+      if (balance < amount) {
+        alert('Saldo insuficiente!');
+        return;
+      }
+      setSavings(prev => prev + amount);
+    } else {
+      // Retirar do cofre para o saldo
+      if (savings < amount) {
+        alert('Cofre sem saldo suficiente!');
+        return;
+      }
+      setSavings(prev => prev - amount);
+    }
+
+    setTransferAmount('');
+    setShowSavingsModal(false);
+  };
+
+  const handleSetGoal = (goal) => {
+    setSavingsGoal(parseFloat(goal) || 0);
+  };
   const renderCalendar = () => {
     const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
     const days = [];
