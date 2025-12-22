@@ -548,9 +548,12 @@ function FinancialCalendar() {
                 <p className={`text-2xl ${textSecondaryClass} mt-2 font-semibold`}>{user.displayName || settings.userName}</p>
               </div>
             </div>
-            <div className="flex gap-2">
+<div className="flex gap-2">
               <button onClick={() => setShowAnalytics(true)} className={`p-3 hover:bg-${colors.hover} rounded-full transition-colors ${textColorClass}`} title="Análise">
                 <i data-lucide="bar-chart-3" className="w-7 h-7"></i>
+              </button>
+              <button onClick={() => setShowSavingsModal(true)} className={`p-3 hover:bg-${colors.hover} rounded-full transition-colors ${textColorClass}`} title="Cofre">
+                <i data-lucide="piggy-bank" className="w-7 h-7"></i>
               </button>
               <button onClick={() => setShowRecurringModal(true)} className={`p-3 hover:bg-${colors.hover} rounded-full transition-colors ${textColorClass}`} title="Recorrentes">
                 <i data-lucide="repeat" className="w-7 h-7"></i>
@@ -563,12 +566,39 @@ function FinancialCalendar() {
               </button>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-3">
-            {balance >= 0 ? <i data-lucide="trending-up" className="w-8 h-8 text-green-500"></i> : <i data-lucide="trending-down" className="w-8 h-8 text-red-500"></i>}
-            <div>
-              <div className={`text-sm ${textSecondaryClass}`}>Saldo do Mês</div>
-              <div className={`text-4xl font-bold border-2 ${balance >= 0 ? 'text-green-500 border-white' : 'text-red-500 border-white'} px-4 py-2 rounded-lg`}>
-                R$ {balance.toFixed(2)}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+            <div className="flex items-center justify-center gap-3">
+              {balance >= 0 ? <i data-lucide="trending-up" className="w-8 h-8 text-green-500"></i> : <i data-lucide="trending-down" className="w-8 h-8 text-red-500"></i>}
+              <div>
+                <div className={`text-sm ${textSecondaryClass}`}>Saldo Disponível</div>
+                <div className={`text-3xl font-bold border-2 ${balance >= 0 ? 'text-green-500 border-white' : 'text-red-500 border-white'} px-3 py-1 rounded-lg`}>
+                  R$ {balance.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              <i data-lucide="piggy-bank" className="w-8 h-8 text-blue-400"></i>
+              <div>
+                <div className={`text-sm ${textSecondaryClass}`}>Cofre</div>
+                <div className="text-3xl font-bold text-blue-400 border-2 border-white px-3 py-1 rounded-lg">
+                  R$ {savings.toFixed(2)}
+                </div>
+                {savingsGoal > 0 && (
+                  <div className="text-xs text-gray-400 mt-1">
+                    Meta: R$ {savingsGoal.toFixed(2)} ({((savings/savingsGoal)*100).toFixed(0)}%)
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              <i data-lucide="wallet" className="w-8 h-8 text-purple-400"></i>
+              <div>
+                <div className={`text-sm ${textSecondaryClass}`}>Total Geral</div>
+                <div className="text-3xl font-bold text-purple-400 border-2 border-white px-3 py-1 rounded-lg">
+                  R$ {(balance + savings).toFixed(2)}
+                </div>
               </div>
             </div>
           </div>
@@ -714,7 +744,139 @@ function FinancialCalendar() {
             </div>
           </div>
         )}
+        {showSavingsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
+            <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-xl p-6 max-w-2xl w-full`}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className={`text-2xl font-bold ${textColorClass} flex items-center gap-2`}>
+                  <i data-lucide="piggy-bank" className="w-8 h-8"></i>
+                  Cofre / Poupança
+                </h3>
+                <button onClick={() => setShowSavingsModal(false)} className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
+              </div>
 
+              {/* Resumo do Cofre */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className={`p-4 border-2 border-${colors.border} rounded-lg`}>
+                  <div className={`text-sm ${textSecondaryClass}`}>Saldo Disponível</div>
+                  <div className={`text-3xl font-bold ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    R$ {balance.toFixed(2)}
+                  </div>
+                </div>
+                <div className="p-4 border-2 border-blue-500 rounded-lg">
+                  <div className="text-sm text-blue-400">No Cofre</div>
+                  <div className="text-3xl font-bold text-blue-400">
+                    R$ {savings.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Meta de Economia */}
+              {savingsGoal > 0 && (
+                <div className={`mb-6 p-4 border-2 border-${colors.border} rounded-lg`}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className={textColorClass}>Meta de Economia</span>
+                    <span className={`font-bold ${textColorClass}`}>R$ {savingsGoal.toFixed(2)}</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-4 mb-2">
+                    <div
+                      className="bg-blue-500 h-4 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min((savings / savingsGoal) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <div className={`text-sm ${textSecondaryClass} text-center`}>
+                    {((savings / savingsGoal) * 100).toFixed(1)}% da meta atingida
+                  </div>
+                </div>
+              )}
+
+              {/* Definir Meta */}
+              <div className={`mb-6 p-4 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
+                <label className={`block text-sm font-medium mb-2 ${textSecondaryClass}`}>
+                  {savingsGoal > 0 ? 'Alterar Meta de Economia' : 'Definir Meta de Economia'}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 5000.00"
+                    className={`flex-1 px-3 py-2 border-2 border-${colors.border} ${bgClass} ${textTertiaryClass} rounded-lg`}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSetGoal(e.target.value);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={(e) => {
+                      const input = e.target.previousElementSibling;
+                      handleSetGoal(input.value);
+                      input.value = '';
+                    }}
+                    className={`bg-${colors.button} text-white px-4 py-2 rounded-lg hover:bg-${colors.buttonHover} font-bold`}
+                  >
+                    Definir
+                  </button>
+                </div>
+              </div>
+
+              {/* Transferências */}
+              <div className={`p-4 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
+                <label className={`block text-sm font-medium mb-3 ${textSecondaryClass}`}>
+                  Transferir Dinheiro
+                </label>
+
+                <div className="flex gap-4 mb-3">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="deposit"
+                      checked={transferType === 'deposit'}
+                      onChange={(e) => setTransferType(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-blue-400 font-medium">Guardar no Cofre 💰</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="withdraw"
+                      checked={transferType === 'withdraw'}
+                      onChange={(e) => setTransferType(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-green-400 font-medium">Retirar do Cofre 💵</span>
+                  </label>
+                </div>
+
+                <input
+                  type="number"
+                  step="0.01"
+                  value={transferAmount}
+                  onChange={(e) => setTransferAmount(e.target.value)}
+                  className={`w-full px-3 py-2 mb-3 border-2 border-${colors.border} ${bgClass} ${textTertiaryClass} rounded-lg`}
+                  placeholder="Valor (R$)"
+                />
+
+                <button
+                  onClick={handleTransfer}
+                  className={`w-full ${transferType === 'deposit' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white py-3 rounded-lg font-bold transition-colors`}
+                >
+                  {transferType === 'deposit' ? '💰 Depositar no Cofre' : '💵 Retirar do Cofre'}
+                </button>
+              </div>
+
+              {/* Dicas */}
+              <div className={`mt-6 p-3 bg-blue-900 bg-opacity-20 border border-blue-500 rounded-lg`}>
+                <p className="text-sm text-blue-300">
+                  💡 <strong>Dica:</strong> Use o cofre para separar dinheiro e evitar gastar! 
+                  Defina metas para conquistar objetivos como viagens, compras ou emergências.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Modais de Settings e Recorrentes - omitidos por espaço, mas funcionais */}
       </div>
     </div>
@@ -725,4 +887,16 @@ function FinancialCalendar() {
 ReactDOM.render(<FinancialCalendar />, document.getElementById('root'));
 
 // Inicializar ícones após render
-setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 100);
+setTimeout(() => { 
+  if (window.lucide) {
+    lucide.createIcons();
+    console.log('✅ Ícones Lucide inicializados');
+  } else {
+    console.error('❌ Lucide não carregou');
+  }
+}, 500);
+
+// Re-inicializar a cada 2 segundos (temporário para debug)
+setInterval(() => {
+  if (window.lucide) lucide.createIcons();
+}, 2000);
