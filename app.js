@@ -200,6 +200,19 @@ function FinancialCalendar() {
     }
   }, [transactions, notes, reminders, settings, recurringTransactions, user]);
 
+ // Re-inicializar ícones quando modais abrem/fecham
+  useEffect(() => {
+    if (window.lucide) {
+      // Timeout maior para garantir que DOM atualizou
+      const timer = setTimeout(() => {
+        lucide.createIcons();
+        console.log('🔄 Ícones re-inicializados');
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showModal, showSettings, showAnalytics, showRecurringModal, showSavingsModal]);
+
   // Aplicar transações recorrentes
   useEffect(() => {
     if (!user) return;
@@ -744,6 +757,7 @@ function FinancialCalendar() {
             </div>
           </div>
         )}
+        {/* ===== MODAL DO COFRE ===== */}
         {showSavingsModal && (
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
             <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-xl p-6 max-w-2xl w-full`}>
@@ -754,8 +768,7 @@ function FinancialCalendar() {
                 </h3>
                 <button onClick={() => setShowSavingsModal(false)} className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
               </div>
-
-              {/* Resumo do Cofre */}
+                            {/* Resumo do Cofre */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className={`p-4 border-2 border-${colors.border} rounded-lg`}>
                   <div className={`text-sm ${textSecondaryClass}`}>Saldo Disponível</div>
@@ -877,6 +890,155 @@ function FinancialCalendar() {
             </div>
           </div>
         )}
+{/* Modal de Configurações */}
+        {showSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
+            <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto`}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className={`text-2xl font-bold ${textColorClass}`}>Configurações</h3>
+                <button onClick={() => setShowSettings(false)} className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Nome do Usuário */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Nome do Usuário</label>
+                  <input type="text" value={settings.userName} onChange={(e) => setSettings({ ...settings, userName: e.target.value })}
+                    className={`w-full px-3 py-2 border-2 border-${colors.border} ${bgClass} text-${colors.tertiary} rounded-lg`} placeholder="Digite seu nome" />
+                </div>
+
+                {/* Cor de Fundo */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Cor de Fundo</label>
+                  <div className="grid grid-cols-6 gap-2">
+                    <button onClick={() => setSettings({ ...settings, bgColor: 'black' })}
+                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'black' ? 'border-white' : 'border-gray-600'} bg-black hover:border-white transition-colors`} title="Preto" />
+                    <button onClick={() => setSettings({ ...settings, bgColor: 'white' })}
+                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'white' ? 'border-gray-800' : 'border-gray-400'} bg-white hover:border-gray-800 transition-colors`} title="Branco" />
+                    <button onClick={() => setSettings({ ...settings, bgColor: 'darkGray' })}
+                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'darkGray' ? 'border-white' : 'border-gray-600'} bg-gray-900 hover:border-white transition-colors`} title="Cinza Escuro" />
+                    <button onClick={() => setSettings({ ...settings, bgColor: 'darkBlue' })}
+                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'darkBlue' ? 'border-white' : 'border-gray-600'} bg-blue-950 hover:border-white transition-colors`} title="Azul Escuro" />
+                    <button onClick={() => setSettings({ ...settings, bgColor: 'darkPurple' })}
+                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'darkPurple' ? 'border-white' : 'border-gray-600'} bg-purple-950 hover:border-white transition-colors`} title="Roxo Escuro" />
+                    <button onClick={() => setSettings({ ...settings, bgColor: 'darkGreen' })}
+                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'darkGreen' ? 'border-white' : 'border-gray-600'} bg-emerald-950 hover:border-white transition-colors`} title="Verde Escuro" />
+                  </div>
+                </div>
+
+                {/* Esquema de Cores */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Cor Principal</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {Object.keys(colorSchemes).map((scheme) => (
+                      <button key={scheme} onClick={() => setSettings({ ...settings, colorScheme: scheme })}
+                        className={`h-12 rounded-lg border-2 ${settings.colorScheme === scheme ? 'border-white' : 'border-gray-600'} bg-${colorSchemes[scheme].primary} hover:border-white transition-colors`} title={scheme} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Fonte */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Tipo de Fonte</label>
+                  <div className="space-y-2">
+                    <button onClick={() => setSettings({ ...settings, font: 'sans' })}
+                      className={`w-full px-4 py-3 rounded-lg border-2 ${settings.font === 'sans' ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} font-sans hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors`}>
+                      Sans Serif (Padrão)
+                    </button>
+                    <button onClick={() => setSettings({ ...settings, font: 'serif' })}
+                      className={`w-full px-4 py-3 rounded-lg border-2 ${settings.font === 'serif' ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} font-serif hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors`}>
+                      Serif (Elegante)
+                    </button>
+                    <button onClick={() => setSettings({ ...settings, font: 'mono' })}
+                      className={`w-full px-4 py-3 rounded-lg border-2 ${settings.font === 'mono' ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} font-mono hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors`}>
+                      Monospace (Técnica)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={() => setShowSettings(false)}
+                className={`w-full mt-6 bg-${colors.button} text-white py-3 rounded-lg hover:bg-${colors.buttonHover} transition-colors font-bold`}>
+                Salvar Configurações
+              </button>
+            </div>
+          </div>
+        )}
+        {/* Modal de Transações Recorrentes */}
+        {showRecurringModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
+            <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className={`text-2xl font-bold ${textColorClass}`}>Transações Recorrentes</h3>
+                <button onClick={() => { setShowRecurringModal(false); setRecurringForm({ description: '', amount: '', type: 'income', dayOfMonth: '1', frequency: 'monthly' }); }}
+                  className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
+              </div>
+
+              {/* Formulário de Recorrentes */}
+              <div className={`mb-6 p-4 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
+                <div className="mb-3">
+                  <label className={`block text-sm font-medium mb-1 text-${colors.secondary}`}>Descrição</label>
+                  <input type="text" value={recurringForm.description} onChange={(e) => setRecurringForm({ ...recurringForm, description: e.target.value })}
+                    className={`w-full px-3 py-2 border-2 border-${colors.border} ${bgClass} text-${colors.tertiary} rounded-lg`} placeholder="Ex: Aluguel, Salário, Netflix..." />
+                </div>
+                <div className="mb-3">
+                  <label className={`block text-sm font-medium mb-1 text-${colors.secondary}`}>Valor (R$)</label>
+                  <input type="number" step="0.01" value={recurringForm.amount} onChange={(e) => setRecurringForm({ ...recurringForm, amount: e.target.value })}
+                    className={`w-full px-3 py-2 border-2 border-${colors.border} ${bgClass} text-${colors.tertiary} rounded-lg`} placeholder="0.00" />
+                </div>
+                <div className="mb-3">
+                  <label className={`block text-sm font-medium mb-1 text-${colors.secondary}`}>Dia do Mês</label>
+                  <input type="number" min="1" max="31" value={recurringForm.dayOfMonth} onChange={(e) => setRecurringForm({ ...recurringForm, dayOfMonth: e.target.value })}
+                    className={`w-full px-3 py-2 border-2 border-${colors.border} ${bgClass} text-${colors.tertiary} rounded-lg`} />
+                </div>
+                <div className="mb-3">
+                  <label className={`block text-sm font-medium mb-1 text-${colors.secondary}`}>Tipo</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center">
+                      <input type="radio" value="income" checked={recurringForm.type === 'income'} onChange={(e) => setRecurringForm({ ...recurringForm, type: e.target.value })} className="mr-2" />
+                      <span className="text-green-500 font-medium border-2 border-white px-2 py-1 rounded">Entrada</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input type="radio" value="expense" checked={recurringForm.type === 'expense'} onChange={(e) => setRecurringForm({ ...recurringForm, type: e.target.value })} className="mr-2" />
+                      <span className="text-red-500 font-medium border-2 border-white px-2 py-1 rounded">Saída</span>
+                    </label>
+                  </div>
+                </div>
+                <button onClick={handleAddRecurring}
+                  className={`w-full bg-${colors.button} text-white py-2 rounded-lg hover:bg-${colors.buttonHover} transition-colors flex items-center justify-center gap-2 font-bold`}>
+                  <i data-lucide="plus" className="w-5 h-5"></i>
+                  Adicionar Recorrente
+                </button>
+              </div>
+
+              {/* Lista de Recorrentes */}
+              <div>
+                <h4 className={`font-semibold mb-3 text-${colors.primary}`}>Transações Cadastradas</h4>
+                {recurringTransactions.length > 0 ? (
+                  <div className="space-y-2">
+                    {recurringTransactions.map((rec) => (
+                      <div key={rec.id} className={`flex items-center justify-between p-3 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
+                        <div>
+                          <div className={`font-medium text-${colors.tertiary}`}>{rec.description}</div>
+                          <div className="text-sm text-gray-400">Todo dia {rec.dayOfMonth} do mês</div>
+                          <div className={`text-lg font-bold border-2 border-white rounded px-2 py-1 inline-block mt-1 ${rec.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                            {rec.type === 'income' ? '+' : '-'} R$ {rec.amount.toFixed(2)}
+                          </div>
+                        </div>
+                        <button onClick={() => handleDeleteRecurring(rec.id)} className="text-red-500 hover:text-red-300 p-2 border-2 border-white rounded">
+                          <i data-lucide="trash-2" className="w-5 h-5"></i>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={`text-${colors.secondary} text-center py-4`}>Nenhuma transação recorrente cadastrada</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modais de Settings e Recorrentes - omitidos por espaço, mas funcionais */}
       </div>
     </div>
