@@ -66,12 +66,22 @@ function FinancialCalendar() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [activeTab, setActiveTab] = useState('transactions');
-  const [settings, setSettings] = useState({
-    userName: 'Usuário',
-    colorScheme: 'pink',
-    font: 'sans',
-    bgColor: 'black'
-  });
+const [settings, setSettings] = useState({
+  userName: 'Usuário',
+  colorScheme: 'pink',
+  font: 'sans',
+  bgColor: 'black',
+  // Efeitos visuais
+  effects: {
+    animatedGradient: false,
+    dayPulse: false,
+    shimmer: false,
+    glow: false,
+    intenseAnimations: false,
+    confetti: true,
+    ripple: true
+  }
+});
   const [recurringTransactions, setRecurringTransactions] = useState([]);
   const [formData, setFormData] = useState({
     description: '',
@@ -171,7 +181,20 @@ function FinancialCalendar() {
         setTransactions(data.transactions || {});
         setNotes(data.notes || {});
         setReminders(data.reminders || {});
-        setSettings(data.settings || settings);
+        setSettings({
+  ...settings,
+  ...(data.settings || {}),
+  effects: {
+    animatedGradient: false,
+    dayPulse: false,
+    shimmer: false,
+    glow: false,
+    intenseAnimations: false,
+    confetti: true,
+    ripple: true,
+    ...(data.settings?.effects || {})
+  }
+});
         setRecurringTransactions(data.recurringTransactions || []);
          setSavings(data.savings || 0);
       setSavingsGoal(data.savingsGoal || 0);
@@ -408,6 +431,44 @@ function FinancialCalendar() {
   const handleDeleteRecurring = (id) => {
     setRecurringTransactions(prev => prev.filter(r => r.id !== id));
   };
+
+  // Função para aplicar presets de efeitos
+  const applyEffectsPreset = (preset) => {
+    const presets = {
+      minimal: {
+        animatedGradient: false,
+        dayPulse: false,
+        shimmer: false,
+        glow: false,
+        intenseAnimations: false,
+        confetti: false,
+        ripple: true
+      },
+      balanced: {
+        animatedGradient: false,
+        dayPulse: false,
+        shimmer: false,
+        glow: true,
+        intenseAnimations: false,
+        confetti: true,
+        ripple: true
+      },
+      maximal: {
+        animatedGradient: true,
+        dayPulse: true,
+        shimmer: true,
+        glow: true,
+        intenseAnimations: true,
+        confetti: true,
+        ripple: true
+      }
+    };
+    
+    setSettings(prev => ({
+      ...prev,
+      effects: presets[preset]
+    }));
+  };
   // Funções do Cofre
   const handleTransfer = () => {
     const amount = parseFloat(transferAmount);
@@ -439,49 +500,85 @@ function FinancialCalendar() {
   const handleSetGoal = (goal) => {
     setSavingsGoal(parseFloat(goal) || 0);
   };
-  const renderCalendar = () => {
-    const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
-    const days = [];
+const renderCalendar = () => {
+  const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
+  const days = [];
 
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="aspect-square" />);
-    }
+  // Espaços vazios antes do primeiro dia
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    days.push(<div key={`empty-${i}`} />);
+  }
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const balance = getDayBalance(day);
-      const key = getDateKey(day);
-      const hasTransactions = transactions[key] && transactions[key].length > 0;
-      const hasNotes = notes[key] && notes[key].length > 0;
-      const hasReminders = reminders[key] && reminders[key].length > 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const key = getDateKey(day);
+    const balance = getDayBalance(day);
+let balanceGradient = 'from-white/10 to-white/5';
 
-      days.push(
-        <div key={day} onClick={() => { setSelectedDay(day); setShowModal(true); }}
-          className={`aspect-square border-2 border-${colors.border} p-2 cursor-pointer hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors flex flex-col ${bgClass} relative`}>
-          <div className="flex items-center justify-between mb-1">
-            <div className={`font-semibold text-sm ${textColorClass}`}>{day}</div>
-            <div className="flex gap-1">
-              {hasNotes && <i data-lucide="sticky-note" className="w-3 h-3 text-yellow-400"></i>}
-              {hasReminders && <i data-lucide="bell" className="w-3 h-3 text-blue-400"></i>}
-            </div>
-          </div>
-          {hasTransactions && (
-            <>
-              <div className="flex-1 overflow-y-auto space-y-1 mb-1">
-                {transactions[key].map((t) => (
-                  <div key={t.id} className={`text-xs ${textTertiaryClass} truncate`}>{t.description}</div>
-                ))}
-              </div>
-              <div className={`text-xs font-bold border-2 border-white rounded px-1 py-0.5 text-center ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                R$ {balance.toFixed(2)}
-              </div>
-            </>
-          )}
+if (balance > 0) {
+  balanceGradient = 'from-emerald-400/20 to-blue-400/10';
+} else if (balance < 0) {
+  balanceGradient = 'from-red-500/25 to-orange-500/10';
+}
+
+    const hasTransactions =
+      transactions[key] && transactions[key].length > 0;
+const today = new Date();
+const isToday =
+  day === today.getDate() &&
+  currentDate.getMonth() === today.getMonth() &&
+  currentDate.getFullYear() === today.getFullYear();
+
+    days.push(
+      <div
+        key={day}
+        onClick={() => {
+          setSelectedDay(day);
+          setShowModal(true);
+        }}
+className={`
+  relative cursor-pointer h-24 p-3 rounded-2xl
+  bg-gradient-to-br ${balanceGradient}
+  backdrop-blur-md transition-all
+  ${
+    isToday
+      ? 'ring-2 ring-white/70 shadow-xl scale-[1.03]'
+      : 'shadow-md hover:brightness-110'
+  }
+`}
+
+
+      >
+        {/* Número do dia */}
+        <div className="text-sm font-bold text-blue-200">
+          {day}
         </div>
-      );
-    }
 
-    return days;
-  };
+        {/* Descrição breve */}
+        {hasTransactions && (
+          <div className="mt-1 text-x text-gray-200 truncate">
+            {transactions[key][0]?.description}
+          </div>
+        )}
+
+        {/* Saldo do dia */}
+        {balance !== 0 && (
+          <div
+            className={`absolute bottom-2 right-2 text-x font-bold ${
+              balance > 0 ? 'text-green-300' : 'text-red-300'
+            }`}
+          >
+            {balance > 0 ? '+' : '-'}R$
+            {Math.abs(balance).toFixed(0)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return days;
+};
+
+
 
   const balance = calculateBalance();
   const { totalIncome, totalExpense, categories } = calculateMonthlyStats();
@@ -551,95 +648,149 @@ function FinancialCalendar() {
       </div>
 
       <div className="max-w-6xl mx-auto relative z-10">
-        {/* Header */}
-        <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-lg p-6 mb-6`}>
-          <div className="flex items-center justify-between mb-4">
+        {/* Header Moderno */}
+        <div className={`${settings.effects.animatedGradient ? 'gradient-animate' : 'bg-gradient-to-br from-blue-300 to-darkblue-500'} rounded-2xl p-6 mb-6 shadow-2xl ${settings.effects.intenseAnimations ? 'animate-fade-in-fast' : 'animate-fade-in'}`}>
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              {user.photoURL && <img src={user.photoURL} alt="Avatar" className="w-12 h-12 rounded-full border-2 border-pink-500" />}
+              {user.photoURL && (
+                <img src={user.photoURL} alt="Avatar" className={`w-14 h-14 rounded-2xl border-3 border-white/30 shadow-lg ${settings.effects.intenseAnimations ? 'animate-scale-in' : ''}`} />
+              )}
               <div>
-                <h1 className={`text-3xl font-bold ${textColorClass}`}>Calendário Financeiro</h1>
-                <p className={`text-2xl ${textSecondaryClass} mt-2 font-semibold`}>{user.displayName || settings.userName}</p>
+                <h1 className="text-3xl font-bold text-white">Calendário Financeiro</h1>
+                <p className="text-lg text-white/80 mt-1 font-medium">{user.displayName || settings.userName}</p>
               </div>
             </div>
-<div className="flex gap-2">
-              <button onClick={() => setShowAnalytics(true)} className={`p-3 hover:bg-${colors.hover} rounded-full transition-colors ${textColorClass}`} title="Análise">
-                <i data-lucide="bar-chart-3" className="w-7 h-7"></i>
+            <div className="flex gap-2">
+              <button onClick={() => setShowAnalytics(true)} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`} title="Análise">
+                <i data-lucide="bar-chart-3" className="w-6 h-6 text-white"></i>
               </button>
-              <button onClick={() => setShowSavingsModal(true)} className={`p-3 hover:bg-${colors.hover} rounded-full transition-colors ${textColorClass}`} title="Cofre">
-                <i data-lucide="piggy-bank" className="w-7 h-7"></i>
+              <button onClick={() => { setShowSavingsModal(true); setTimeout(() => lucide.createIcons(), 200); }} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`} title="Cofre">
+                <i data-lucide="piggy-bank" className="w-6 h-6 text-white"></i>
               </button>
-              <button onClick={() => setShowRecurringModal(true)} className={`p-3 hover:bg-${colors.hover} rounded-full transition-colors ${textColorClass}`} title="Recorrentes">
-                <i data-lucide="repeat" className="w-7 h-7"></i>
+              <button onClick={() => { setShowRecurringModal(true); setTimeout(() => lucide.createIcons(), 200); }} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`} title="Recorrentes">
+                <i data-lucide="repeat" className="w-6 h-6 text-white"></i>
               </button>
-              <button onClick={() => setShowSettings(true)} className={`p-3 hover:bg-${colors.hover} rounded-full transition-colors ${textColorClass}`}>
-                <i data-lucide="settings" className="w-7 h-7"></i>
+              <button onClick={() => { setShowSettings(true); setTimeout(() => lucide.createIcons(), 200); }} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`}>
+                <i data-lucide="settings" className="w-6 h-6 text-white"></i>
               </button>
-              <button onClick={handleLogout} className="p-3 hover:bg-red-900 rounded-full transition-colors text-red-500" title="Sair">
-                <i data-lucide="log-out" className="w-7 h-7"></i>
+              <button onClick={handleLogout} className={`p-3 bg-red-500/20 hover:bg-red-500/30 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`} title="Sair">
+                <i data-lucide="log-out" className="w-6 h-6 text-red-400"></i>
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-            <div className="flex items-center justify-center gap-3">
-              {balance >= 0 ? <i data-lucide="trending-up" className="w-8 h-8 text-green-500"></i> : <i data-lucide="trending-down" className="w-8 h-8 text-red-500"></i>}
-              <div>
-                <div className={`text-sm ${textSecondaryClass}`}>Saldo Disponível</div>
-                <div className={`text-3xl font-bold border-2 ${balance >= 0 ? 'text-green-500 border-white' : 'text-red-500 border-white'} px-3 py-1 rounded-lg`}>
+          {/* Cards de Saldo Modernos */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Receitas */}
+            <div className={`bg-${colors.primary} rounded-2xl p-6 shadow-xl ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} relative overflow-hidden`}>
+              {settings.effects?.shimmer && <div className="shimmer absolute inset-0"></div>}
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-white/90">Receitas do Mês</span>
+                  <i data-lucide="trending-up" className="w-8 h-8 text-white"></i>
+                </div>
+                <div className="text-4xl font-bold text-white mb-1">
+                  R$ {totalIncome.toFixed(2)}
+                </div>
+              </div>
+            </div>
+            {/* Despesas */}
+            <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 shadow-xl ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} relative overflow-hidden`}>
+              {settings.effects?.shimmer && <div className="shimmer absolute inset-0"></div>}
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-white/90">Despesas do Mês</span>
+                  <i data-lucide="trending-down" className="w-8 h-8 text-white"></i>
+                </div>
+                <div className="text-4xl font-bold text-white mb-1">
+                  R$ {totalExpense.toFixed(2)}
+                </div>
+              </div>
+            </div>
+             {/* Saldo Total */}
+            <div className={`rounded-2xl p-6 shadow-xl ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} relative overflow-hidden ${settings.effects?.glow ? 'glow' : ''}`}
+              style={{ backgroundColor: `rgb(${
+                settings.colorScheme === 'pink' ? '236, 72, 153' :
+                settings.colorScheme === 'blue' ? '59, 130, 246' :
+                settings.colorScheme === 'purple' ? '168, 85, 247' :
+                settings.colorScheme === 'green' ? '16, 185, 129' :
+                '249, 115, 22'
+              })` }}
+            >
+              {settings.effects?.shimmer && <div className="shimmer absolute inset-0"></div>}
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-white/90">Saldo Total</span>
+                  <i data-lucide="wallet" className="w-8 h-8 text-white"></i>
+                </div>
+                <div className="text-4xl font-bold text-white mb-1">
                   R$ {balance.toFixed(2)}
                 </div>
               </div>
             </div>
-
-            <div className="flex items-center justify-center gap-3">
-              <i data-lucide="piggy-bank" className="w-8 h-8 text-blue-400"></i>
-              <div>
-                <div className={`text-sm ${textSecondaryClass}`}>Cofre</div>
-                <div className="text-3xl font-bold text-blue-400 border-2 border-white px-3 py-1 rounded-lg">
-                  R$ {savings.toFixed(2)}
-                </div>
-                {savingsGoal > 0 && (
-                  <div className="text-xs text-gray-400 mt-1">
-                    Meta: R$ {savingsGoal.toFixed(2)} ({((savings/savingsGoal)*100).toFixed(0)}%)
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center gap-3">
-              <i data-lucide="wallet" className="w-8 h-8 text-purple-400"></i>
-              <div>
-                <div className={`text-sm ${textSecondaryClass}`}>Total Geral</div>
-                <div className="text-3xl font-bold text-purple-400 border-2 border-white px-3 py-1 rounded-lg">
-                  R$ {(balance + savings).toFixed(2)}
-                </div>
-              </div>
-            </div>
           </div>
-        </div>
+       </div>
 
-        {/* Calendário */}
-        <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-lg p-6`}>
-          <div className="flex items-center justify-between mb-6">
-            <button onClick={() => changeMonth(-1)} className={`p-2 hover:bg-${colors.hover} rounded-full transition-colors ${textColorClass}`}>
-              <i data-lucide="chevron-left" className="w-6 h-6"></i>
-            </button>
-            <h2 className={`text-2xl font-bold ${textColorClass}`}>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h2>
-            <button onClick={() => changeMonth(1)} className={`p-2 hover:bg-${colors.hover} rounded-full transition-colors ${textColorClass}`}>
-              <i data-lucide="chevron-right" className="w-6 h-6"></i>
-            </button>
-          </div>
+{/* Calendário */}
+<div
+  className="
+    relative
+    rounded-3xl
+    p-6
+    bg-gradient-to-br from-blue-600/10 via-blue-500/70 to-blue-100/10
+    backdrop-blur-xl
+    shadow-2xl
+  "
+>
 
-          <div className="grid grid-cols-7 gap-2 mb-2">
-            {daysOfWeek.map(day => <div key={day} className={`text-center font-semibold ${textSecondaryClass} text-sm`}>{day}</div>)}
-          </div>
+  {/* Cabeçalho */}
+  <div className="flex items-center justify-between mb-6">
+    <button
+      onClick={() => changeMonth(-1)}
+      className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition"
+    >
+      <i data-lucide="chevron-left" className="w-6 h-6 text-white"></i>
+    </button>
 
-          <div className="grid grid-cols-7 gap-2">{renderCalendar()}</div>
-        </div>
+    <h2 className="text-xl font-bold text-white">
+      {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+    </h2>
+
+    <button
+      onClick={() => changeMonth(1)}
+      className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition"
+    >
+      <i data-lucide="chevron-right" className="w-6 h-6 text-white"></i>
+    </button>
+  </div>
+
+  {/* Dias da semana */}
+  <div className="grid grid-cols-7 text-center text-sm text-white/70 mb-3">
+    {daysOfWeek.map(day => (
+      <div key={day}>{day}</div>
+    ))}
+  </div>
+
+  {/* Grid do calendário */}
+  <div className="grid grid-cols-7 gap-3">
+    {renderCalendar()}
+  </div>
+</div>
+
 
         {/* Modal do Dia */}
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
-            <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            <div
+  className="
+    relative
+    rounded-3xl
+    p-6
+    bg-gradient-to-br from-blue-600/80 via-blue-500/70 to-blue-700/80
+    backdrop-blur-xl
+    shadow-2xl
+  "
+>
+
               <div className="flex justify-between items-center mb-4">
                 <h3 className={`text-xl font-bold ${textColorClass}`}>Dia {selectedDay} - {monthNames[currentDate.getMonth()]}</h3>
                 <button onClick={() => { setShowModal(false); setActiveTab('transactions'); }} className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
@@ -956,7 +1107,107 @@ function FinancialCalendar() {
                   </div>
                 </div>
               </div>
+{/* Efeitos Visuais */}
+                <div>
+                  <label className={`block text-lg font-semibold mb-3 text-${colors.primary}`}>
+                    ✨ Efeitos Visuais
+                  </label>
+                  
+                  {/* Presets Rápidos */}
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <button
+                      onClick={() => applyEffectsPreset('minimal')}
+                      className={`px-4 py-3 rounded-lg border-2 ${!settings.effects.animatedGradient && !settings.effects.dayPulse ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors text-sm font-medium`}
+                    >
+                      🎨 Minimalista
+                    </button>
+                    <button
+                      onClick={() => applyEffectsPreset('balanced')}
+                      className={`px-4 py-3 rounded-lg border-2 ${settings.effects.glow && !settings.effects.animatedGradient ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors text-sm font-medium`}
+                    >
+                      ⚖️ Equilibrado
+                    </button>
+                    <button
+                      onClick={() => applyEffectsPreset('maximal')}
+                      className={`px-4 py-3 rounded-lg border-2 ${settings.effects.animatedGradient && settings.effects.dayPulse ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors text-sm font-medium`}
+                    >
+                      🚀 Maximalista
+                    </button>
+                  </div>
 
+                  {/* Toggles Individuais */}
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className={`text-sm ${textSecondaryClass}`}>Gradiente Animado no Header</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.effects.animatedGradient}
+                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, animatedGradient: e.target.checked }}))}
+                        className="w-5 h-5"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className={`text-sm ${textSecondaryClass}`}>Pulsação nos Dias com Transações</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.effects.dayPulse}
+                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, dayPulse: e.target.checked }}))}
+                        className="w-5 h-5"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className={`text-sm ${textSecondaryClass}`}>Efeito Shimmer nos Cards</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.effects.shimmer}
+                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, shimmer: e.target.checked }}))}
+                        className="w-5 h-5"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className={`text-sm ${textSecondaryClass}`}>Glow no Cofre e Dia Atual</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.effects.glow}
+                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, glow: e.target.checked }}))}
+                        className="w-5 h-5"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className={`text-sm ${textSecondaryClass}`}>Animações Intensas</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.effects.intenseAnimations}
+                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, intenseAnimations: e.target.checked }}))}
+                        className="w-5 h-5"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className={`text-sm ${textSecondaryClass}`}>Confetti ao Atingir Meta</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.effects.confetti}
+                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, confetti: e.target.checked }}))}
+                        className="w-5 h-5"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className={`text-sm ${textSecondaryClass}`}>Efeito Ripple nos Botões</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.effects.ripple}
+                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, ripple: e.target.checked }}))}
+                        className="w-5 h-5"
+                      />
+                    </label>
+                  </div>
+                </div>
               <button onClick={() => setShowSettings(false)}
                 className={`w-full mt-6 bg-${colors.button} text-white py-3 rounded-lg hover:bg-${colors.buttonHover} transition-colors font-bold`}>
                 Salvar Configurações
