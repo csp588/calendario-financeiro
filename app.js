@@ -54,7 +54,24 @@ const { useState, useEffect } = React;
 const { ChevronLeft, ChevronRight, Plus, Trash2, TrendingUp, TrendingDown, StickyNote, Bell, Settings, LogOut } = lucide;
 
 function FinancialCalendar() {
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
+    const [dataLoaded, setDataLoaded] = useState(false);
+  useEffect(() => {
+  const checkOrientation = () => {
+    const isPortrait =
+      window.innerWidth < 768 &&
+      window.innerHeight > window.innerWidth;
+
+    setIsMobilePortrait(isPortrait);
+  };
+
+  checkOrientation();
+  window.addEventListener('resize', checkOrientation);
+
+  return () => window.removeEventListener('resize', checkOrientation);
+}, []);
   const [user, setUser] = useState(null);
+  const [authResolved, setAuthResolved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [transactions, setTransactions] = useState({});
@@ -154,11 +171,16 @@ const [settings, setSettings] = useState({
         clearTimeout(fallbackTimer);
         fallbackTimer = null;
       }
-      setUser(userData);
-      if (userData) {
-        await loadAllUserData(userData.uid);
-      }
-      setLoading(false);
+setUser(userData);
+
+if (userData) {
+  await loadAllUserData(userData.uid);
+}
+
+setAuthResolved(true);
+setLoading(false);
+
+
     });
 
     // Se nenhum callback ocorrer até o tempo limite, desbloqueia a UI para tentativa manual
@@ -204,24 +226,35 @@ const [settings, setSettings] = useState({
     }
   };
 
-  // Salvar dados automaticamente
-  useEffect(() => {
-    if (user) {
-      const timeoutId = setTimeout(() => {
-        saveUserData(user.uid, {
-          transactions,
-          notes,
-          reminders,
-          settings,
-          recurringTransactions,
-          savings,
-          savingsGoal
-        });
-      }, 1000); // Debounce de 1 segundo
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [transactions, notes, reminders, settings, recurringTransactions, user]);
+// Salvar dados automaticamente (BLINDADO)
+useEffect(() => {
+if (!user || !dataLoaded || !authResolved) return;
+ // 🔒 trava total até load completo
+
+  const timeoutId = setTimeout(() => {
+    saveUserData(user.uid, {
+      transactions,
+      notes,
+      reminders,
+      settings,
+      recurringTransactions,
+      savings,
+      savingsGoal
+    });
+  }, 1000);
+
+  return () => clearTimeout(timeoutId);
+}, [
+  transactions,
+  notes,
+  reminders,
+  settings,
+  recurringTransactions,
+  savings,
+  savingsGoal,
+  user,
+  dataLoaded
+]);
 
  // Re-inicializar ícones quando modais abrem/fecham
   useEffect(() => {
@@ -660,7 +693,14 @@ className={`
                 <p className="text-lg text-white/80 mt-1 font-medium">{user.displayName || settings.userName}</p>
               </div>
             </div>
-            <div className="flex gap-2">
+<div
+  className={`flex gap-2 ${
+    isMobilePortrait
+      ? 'mt-4 justify-center flex-wrap'
+      : ''
+  }`}
+>
+
               <button onClick={() => setShowAnalytics(true)} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`} title="Análise">
                 <i data-lucide="bar-chart-3" className="w-6 h-6 text-white"></i>
               </button>
