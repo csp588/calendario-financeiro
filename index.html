@@ -46,23 +46,30 @@
             to { transform: rotate(360deg); }
         }
         
-        /* Scrollbar customizada */
+        /* Scrollbar customizada - Fixa em cinza neutro */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
         
         ::-webkit-scrollbar-track {
-            background: #1a1a1a;
+            background: #1F2937;  /* Track gray-800 neutro */
+            border-radius: 10px;
         }
         
         ::-webkit-scrollbar-thumb {
-            background: #ec4899;
-            border-radius: 4px;
+            background: #4B5563;  /* Thumb gray-600 neutro */
+            border-radius: 10px;
         }
         
         ::-webkit-scrollbar-thumb:hover {
-            background: #db2777;
+            background: #6B7280;  /* Hover gray-500 */
+        }
+        
+        /* Para Firefox - scrollbar neutra */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #4B5563 #1F2937;
         }
     </style>
 </head>

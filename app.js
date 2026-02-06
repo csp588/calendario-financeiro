@@ -16,13 +16,14 @@ const logout = async (...args) => {
 
 const onAuthChange = (callback) => {
   const api = getFirebase();
+
   if (api.onAuthChange) {
     return api.onAuthChange(callback);
   }
 
-  // Se API não pronta, faça polling curto e registre quando estiver disponível
   let unsub = null;
   let stopped = false;
+
   const handle = setInterval(() => {
     const a = getFirebase();
     if (a.onAuthChange && !stopped) {
@@ -51,54 +52,56 @@ const loadUserData = async (...args) => {
 };
 
 const { useState, useEffect } = React;
-const { ChevronLeft, ChevronRight, Plus, Trash2, TrendingUp, TrendingDown, StickyNote, Bell, Settings, LogOut } = lucide;
 
 function FinancialCalendar() {
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
-    const [dataLoaded, setDataLoaded] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
   useEffect(() => {
-  const checkOrientation = () => {
-    const isPortrait =
-      window.innerWidth < 768 &&
-      window.innerHeight > window.innerWidth;
+    const checkOrientation = () => {
+      const portrait = window.innerWidth < 768 && window.innerHeight > window.innerWidth;
+      setIsMobilePortrait(portrait);
+    };
 
-    setIsMobilePortrait(isPortrait);
-  };
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    return () => window.removeEventListener('resize', checkOrientation);
+  }, []);
 
-  checkOrientation();
-  window.addEventListener('resize', checkOrientation);
-
-  return () => window.removeEventListener('resize', checkOrientation);
-}, []);
+  const [editingRecurringId, setEditingRecurringId] = useState(null);
   const [user, setUser] = useState(null);
   const [authResolved, setAuthResolved] = useState(false);
   const [loading, setLoading] = useState(true);
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [transactions, setTransactions] = useState({});
   const [notes, setNotes] = useState({});
   const [reminders, setReminders] = useState({});
+
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [activeTab, setActiveTab] = useState('transactions');
-const [settings, setSettings] = useState({
-  userName: 'Usuário',
-  colorScheme: 'pink',
-  font: 'sans',
-  bgColor: 'black',
-  // Efeitos visuais
-  effects: {
-    animatedGradient: false,
-    dayPulse: false,
-    shimmer: false,
-    glow: false,
-    intenseAnimations: false,
-    confetti: true,
-    ripple: true
-  }
-});
+
+  const [settings, setSettings] = useState({
+    userName: 'Usuário',
+    colorScheme: 'blue',
+    font: 'sans',
+    bgColor: 'black',
+    autoTheme: false,  
+    effects: {
+      animatedGradient: 50,  
+      dayPulse: 50,
+      shimmer: 50,
+      glow: 50,
+      intenseAnimations: 50,
+      confetti: 50,
+      ripple: 50
+    }
+  });
   const [recurringTransactions, setRecurringTransactions] = useState([]);
   const [formData, setFormData] = useState({
     description: '',
@@ -107,14 +110,10 @@ const [settings, setSettings] = useState({
   });
   const [savings, setSavings] = useState(0);
   const [savingsGoal, setSavingsGoal] = useState(0);
-  const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [transferAmount, setTransferAmount] = useState('');
   const [transferType, setTransferType] = useState('deposit');
   const [noteText, setNoteText] = useState('');
-  const [reminderData, setReminderData] = useState({
-    text: '',
-    time: ''
-  });
+  const [reminderData, setReminderData] = useState({ text: '', time: '' });
   const [recurringForm, setRecurringForm] = useState({
     description: '',
     amount: '',
@@ -139,15 +138,35 @@ const [settings, setSettings] = useState({
     return () => { stopped = true; clearInterval(handle); };
   }, [firebaseReady]);
 
+  // Adição do Passo 3: useEffect para tema automático (colado aqui, após o último useEffect)
+  useEffect(() => {
+    if (settings.autoTheme) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => {
+        const newBgColor = mediaQuery.matches ? 'black' : 'white';
+        setSettings(prev => {
+          if (prev.bgColor !== newBgColor) {  // Proteção contra loop
+            return { ...prev, bgColor: newBgColor };
+          }
+          return prev;
+        });
+      };
+
+      handleChange();
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+  }, [settings.autoTheme]);
+
   const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   const colorSchemes = {
-    pink: { primary: 'pink-500', secondary: 'pink-400', tertiary: 'pink-300', hover: 'pink-900', bg: 'pink-900', border: 'pink-500', button: 'pink-600', buttonHover: 'pink-700' },
-    blue: { primary: 'blue-500', secondary: 'blue-400', tertiary: 'blue-300', hover: 'blue-900', bg: 'blue-900', border: 'blue-500', button: 'blue-600', buttonHover: 'blue-700' },
-    purple: { primary: 'purple-500', secondary: 'purple-400', tertiary: 'purple-300', hover: 'purple-900', bg: 'purple-900', border: 'purple-500', button: 'purple-600', buttonHover: 'purple-700' },
-    green: { primary: 'emerald-500', secondary: 'emerald-400', tertiary: 'emerald-300', hover: 'emerald-900', bg: 'emerald-900', border: 'emerald-500', button: 'emerald-600', buttonHover: 'emerald-700' },
-    orange: { primary: 'orange-500', secondary: 'orange-400', tertiary: 'orange-300', hover: 'orange-900', bg: 'orange-900', border: 'orange-500', button: 'orange-600', buttonHover: 'orange-700' }
+    pink: { primary: 'pink-500', secondary: 'pink-400', tertiary: 'pink-300', hover: 'pink-900', bg: 'pink-900', border: 'border-pink-500', button: 'bg-pink-600', buttonHover: 'bg-pink-700' },
+    blue: { primary: 'blue-500', secondary: 'blue-400', tertiary: 'blue-300', hover: 'blue-900', bg: 'blue-900', border: 'border-blue-500', button: 'bg-blue-600', buttonHover: 'bg-blue-700' },
+    purple: { primary: 'purple-500', secondary: 'purple-400', tertiary: 'purple-300', hover: 'purple-900', bg: 'purple-900', border: 'border-purple-500', button: 'bg-purple-600', buttonHover: 'bg-purple-700' },
+    green: { primary: 'emerald-500', secondary: 'emerald-400', tertiary: 'emerald-300', hover: 'emerald-900', bg: 'emerald-900', border: 'border-emerald-500', button: 'bg-emerald-600', buttonHover: 'bg-emerald-700' },
+    orange: { primary: 'orange-500', secondary: 'orange-400', tertiary: 'orange-300', hover: 'orange-900', bg: 'orange-900', border: 'border-orange-500', button: 'bg-orange-600', buttonHover: 'bg-orange-700' }
   };
 
   const fonts = { sans: 'font-sans', serif: 'font-serif', mono: 'font-mono' };
@@ -159,10 +178,9 @@ const [settings, setSettings] = useState({
   const textColorClass = settings.bgColor === 'white' ? 'text-gray-900' : `text-${colors.primary}`;
   const textSecondaryClass = settings.bgColor === 'white' ? 'text-gray-700' : `text-${colors.secondary}`;
   const textTertiaryClass = settings.bgColor === 'white' ? 'text-gray-600' : `text-${colors.tertiary}`;
-
+ 
   // Monitorar autenticação
   useEffect(() => {
-    // fallback: se o Firebase não responder em X ms, sair do loading
     const FALLBACK_MS = 6000;
     let fallbackTimer = null;
 
@@ -171,19 +189,17 @@ const [settings, setSettings] = useState({
         clearTimeout(fallbackTimer);
         fallbackTimer = null;
       }
-setUser(userData);
+      setUser(userData);
 
-if (userData) {
-  await loadAllUserData(userData.uid);
-}
+      if (userData) {
+        await loadAllUserData(userData.uid);
+        setDataLoaded(true);
+      }
 
-setAuthResolved(true);
-setLoading(false);
-
-
+      setAuthResolved(true);
+      setLoading(false);
     });
 
-    // Se nenhum callback ocorrer até o tempo limite, desbloqueia a UI para tentativa manual
     fallbackTimer = setTimeout(() => {
       console.warn('Firebase não respondeu no tempo esperado — mostrando UI de login.');
       setLoading(false);
@@ -195,7 +211,6 @@ setLoading(false);
     };
   }, []);
 
-  // Carregar dados do usuário
   const loadAllUserData = async (userId) => {
     try {
       const data = await loadUserData(userId);
@@ -203,100 +218,136 @@ setLoading(false);
         setTransactions(data.transactions || {});
         setNotes(data.notes || {});
         setReminders(data.reminders || {});
-        setSettings({
-  ...settings,
-  ...(data.settings || {}),
-  effects: {
-    animatedGradient: false,
-    dayPulse: false,
-    shimmer: false,
-    glow: false,
-    intenseAnimations: false,
-    confetti: true,
-    ripple: true,
-    ...(data.settings?.effects || {})
-  }
-});
+        setSettings(prev => ({
+          ...prev,
+          ...(data.settings || {}),
+          effects: {
+            animatedGradient: false,
+            dayPulse: false,
+            shimmer: false,
+            glow: false,
+            intenseAnimations: false,
+            confetti: true,
+            ripple: true,
+            ...(data.settings?.effects || {})
+          }
+        }));
         setRecurringTransactions(data.recurringTransactions || []);
-         setSavings(data.savings || 0);
-      setSavingsGoal(data.savingsGoal || 0);
+        setSavings(data.savings || 0);
+        setSavingsGoal(data.savingsGoal || 0);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     }
   };
 
-// Salvar dados automaticamente (BLINDADO)
-useEffect(() => {
-if (!user || !dataLoaded || !authResolved) return;
- // 🔒 trava total até load completo
+  // Salvar dados automaticamente
+  useEffect(() => {
+    if (!user || !dataLoaded || !authResolved) return;
 
-  const timeoutId = setTimeout(() => {
-    saveUserData(user.uid, {
-      transactions,
-      notes,
-      reminders,
-      settings,
-      recurringTransactions,
-      savings,
-      savingsGoal
-    });
-  }, 1000);
+    const timeoutId = setTimeout(() => {
+      saveUserData(user.uid, {
+        transactions,
+        notes,
+        reminders,
+        settings,
+        recurringTransactions,
+        savings,
+        savingsGoal
+      });
+    }, 1000);
 
-  return () => clearTimeout(timeoutId);
-}, [
-  transactions,
-  notes,
-  reminders,
-  settings,
-  recurringTransactions,
-  savings,
-  savingsGoal,
-  user,
-  dataLoaded
-]);
+    return () => clearTimeout(timeoutId);
+  }, [transactions, notes, reminders, settings, recurringTransactions, savings, savingsGoal, user, dataLoaded]);
 
- // Re-inicializar ícones quando modais abrem/fecham
+  // Re-inicializar ícones Lucide
   useEffect(() => {
     if (window.lucide) {
-      // Timeout maior para garantir que DOM atualizou
-      const timer = setTimeout(() => {
-        lucide.createIcons();
-        console.log('🔄 Ícones re-inicializados');
-      }, 300);
-      
+      const timer = setTimeout(() => lucide.createIcons(), 300);
       return () => clearTimeout(timer);
     }
   }, [showModal, showSettings, showAnalytics, showRecurringModal, showSavingsModal]);
 
   // Aplicar transações recorrentes
-  useEffect(() => {
-    if (!user) return;
-    
-    recurringTransactions.forEach(recurring => {
-      const key = getDateKey(parseInt(recurring.dayOfMonth));
-      const exists = transactions[key]?.some(t => 
-        t.description === recurring.description && 
-        t.amount === recurring.amount &&
-        t.type === recurring.type
-      );
-      
-      if (!exists) {
-        const newTransaction = {
-          id: Date.now() + Math.random(),
-          description: recurring.description,
-          amount: parseFloat(recurring.amount),
-          type: recurring.type,
-          recurring: true
-        };
-        
-        setTransactions(prev => ({
-          ...prev,
-          [key]: [...(prev[key] || []), newTransaction]
-        }));
+useEffect(() => {
+  if (!user) return;
+
+  recurringTransactions.forEach(recurring => {
+    // trava pelo limite de repetições
+    if (
+      recurring.maxRepeats !== null &&
+      (recurring.repeatCount || 0) >= recurring.maxRepeats
+    ) {
+      return;
+    }
+
+    const day = parseInt(recurring.dayOfMonth, 10);
+    const key = getDateKey(day);
+
+    const exists = transactions[key]?.some(t =>
+      t.recurring &&
+      t.recurringId === recurring.id
+    );
+
+    if (exists) return;
+
+    const newTransaction = {
+      id: Date.now() + Math.random(),
+      description: recurring.description,
+      amount: Number(recurring.amount),
+      type: recurring.type,
+      recurring: true,
+      recurringId: recurring.id,
+      occurrence: (recurring.repeatCount || 0) + 1
+    };
+
+    // adiciona a transação do mês
+    setTransactions(prev => ({
+      ...prev,
+      [key]: [...(prev[key] || []), newTransaction]
+    }));
+
+    // incrementa UMA vez por mês
+    setRecurringTransactions(prev =>
+      prev.map(r =>
+        r.id === recurring.id
+          ? { ...r, repeatCount: (r.repeatCount || 0) + 1 }
+          : r
+      )
+    );
+  });
+}, [currentDate, user]);
+
+useEffect(() => {
+  setTransactions(prev => {
+    const updated = {};
+
+    Object.entries(prev).forEach(([key, list]) => {
+      const filtered = list.filter(t => {
+        if (!t.recurring) return true;
+
+        const rec = recurringTransactions.find(r => r.id === t.recurringId);
+        if (!rec) return false;
+
+        if (
+          rec.maxRepeats !== null &&
+          t.occurrence > rec.maxRepeats
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+
+      if (filtered.length) {
+        updated[key] = filtered;
       }
     });
-  }, [currentDate, recurringTransactions, user]);
+
+    return updated;
+  });
+}, [recurringTransactions]);
+
 
   const handleLogin = async () => {
     try {
@@ -313,6 +364,9 @@ if (!user || !dataLoaded || !authResolved) return;
       setNotes({});
       setReminders({});
       setRecurringTransactions([]);
+      setSavings(0);
+      setSavingsGoal(0);
+      setDataLoaded(false);
     } catch (error) {
       console.error('Erro no logout:', error);
     }
@@ -333,19 +387,19 @@ if (!user || !dataLoaded || !authResolved) return;
   };
 
   const getDateKey = (day) => {
-    return `${currentDate.getFullYear()}-${currentDate.getMonth()}-${day}`;
+    return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
   const calculateBalance = () => {
     let total = 0;
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
-    
+
     Object.entries(transactions).forEach(([key, dayTransactions]) => {
       const [year, month] = key.split('-').map(Number);
-      if (year === currentYear && month === currentMonth) {
+      if (year === currentYear && month - 1 === currentMonth) {
         dayTransactions.forEach(t => {
-          total += t.type === 'income' ? parseFloat(t.amount) : -parseFloat(t.amount);
+          total += t.type === 'income' ? t.amount : -t.amount;
         });
       }
     });
@@ -355,51 +409,45 @@ if (!user || !dataLoaded || !authResolved) return;
   const calculateMonthlyStats = () => {
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
-    
+
     let totalIncome = 0;
     let totalExpense = 0;
-    const categories = {};
-    
+
     Object.entries(transactions).forEach(([key, dayTransactions]) => {
       const [year, month] = key.split('-').map(Number);
-      if (year === currentYear && month === currentMonth) {
+      if (year === currentYear && month - 1 === currentMonth) {
         dayTransactions.forEach(t => {
-          if (t.type === 'income') {
-            totalIncome += parseFloat(t.amount);
-          } else {
-            totalExpense += parseFloat(t.amount);
-            const category = t.description.split(' ')[0];
-            categories[category] = (categories[category] || 0) + parseFloat(t.amount);
-          }
+          if (t.type === 'income') totalIncome += t.amount;
+          else totalExpense += t.amount;
         });
       }
     });
-    
-    return { totalIncome, totalExpense, categories };
+
+    return { totalIncome, totalExpense };
   };
 
   const getDayBalance = (day) => {
     const key = getDateKey(day);
     if (!transactions[key]) return 0;
-    
-    return transactions[key].reduce((sum, t) => {
-      return sum + (t.type === 'income' ? parseFloat(t.amount) : -parseFloat(t.amount));
-    }, 0);
+    return transactions[key].reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), 0);
   };
 
   const handleAddTransaction = () => {
-    if (!formData.description || !formData.amount) return;
+    if (!formData.description.trim() || !formData.amount || isNaN(formData.amount)) return;
+
     const key = getDateKey(selectedDay);
     const newTransaction = {
       id: Date.now(),
-      description: formData.description,
+      description: formData.description.trim(),
       amount: parseFloat(formData.amount),
       type: formData.type
     };
+
     setTransactions(prev => ({
       ...prev,
       [key]: [...(prev[key] || []), newTransaction]
     }));
+
     setFormData({ description: '', amount: '', type: 'income' });
   };
 
@@ -408,7 +456,7 @@ if (!user || !dataLoaded || !authResolved) return;
     const key = getDateKey(selectedDay);
     setNotes(prev => ({
       ...prev,
-      [key]: [...(prev[key] || []), { id: Date.now(), text: noteText }]
+      [key]: [...(prev[key] || []), { id: Date.now(), text: noteText.trim() }]
     }));
     setNoteText('');
   };
@@ -418,7 +466,7 @@ if (!user || !dataLoaded || !authResolved) return;
     const key = getDateKey(selectedDay);
     setReminders(prev => ({
       ...prev,
-      [key]: [...(prev[key] || []), { id: Date.now(), text: reminderData.text, time: reminderData.time, notified: false }]
+      [key]: [...(prev[key] || []), { id: Date.now(), text: reminderData.text.trim(), time: reminderData.time, notified: false }]
     }));
     setReminderData({ text: '', time: '' });
   };
@@ -448,15 +496,17 @@ if (!user || !dataLoaded || !authResolved) return;
   };
 
   const handleAddRecurring = () => {
-    if (!recurringForm.description || !recurringForm.amount) return;
+    if (!recurringForm.description.trim() || !recurringForm.amount || isNaN(recurringForm.amount)) return;
+
     const newRecurring = {
       id: Date.now(),
-      description: recurringForm.description,
+      description: recurringForm.description.trim(),
       amount: parseFloat(recurringForm.amount),
       type: recurringForm.type,
       dayOfMonth: recurringForm.dayOfMonth,
       frequency: recurringForm.frequency
     };
+
     setRecurringTransactions(prev => [...prev, newRecurring]);
     setRecurringForm({ description: '', amount: '', type: 'income', dayOfMonth: '1', frequency: 'monthly' });
   };
@@ -465,60 +515,32 @@ if (!user || !dataLoaded || !authResolved) return;
     setRecurringTransactions(prev => prev.filter(r => r.id !== id));
   };
 
-  // Função para aplicar presets de efeitos
   const applyEffectsPreset = (preset) => {
     const presets = {
-      minimal: {
-        animatedGradient: false,
-        dayPulse: false,
-        shimmer: false,
-        glow: false,
-        intenseAnimations: false,
-        confetti: false,
-        ripple: true
-      },
-      balanced: {
-        animatedGradient: false,
-        dayPulse: false,
-        shimmer: false,
-        glow: true,
-        intenseAnimations: false,
-        confetti: true,
-        ripple: true
-      },
-      maximal: {
-        animatedGradient: true,
-        dayPulse: true,
-        shimmer: true,
-        glow: true,
-        intenseAnimations: true,
-        confetti: true,
-        ripple: true
-      }
+      minimal: { animatedGradient: false, dayPulse: false, shimmer: false, glow: false, intenseAnimations: false, confetti: false, ripple: true },
+      balanced: { animatedGradient: false, dayPulse: false, shimmer: false, glow: true, intenseAnimations: false, confetti: true, ripple: true },
+      maximal: { animatedGradient: true, dayPulse: true, shimmer: true, glow: true, intenseAnimations: true, confetti: true, ripple: true }
     };
-    
-    setSettings(prev => ({
-      ...prev,
-      effects: presets[preset]
-    }));
+
+    setSettings(prev => ({ ...prev, effects: presets[preset] }));
   };
-  // Funções do Cofre
+
   const handleTransfer = () => {
     const amount = parseFloat(transferAmount);
-    if (!amount || amount <= 0) {
+    if (isNaN(amount) || amount <= 0) {
       alert('Digite um valor válido!');
       return;
     }
 
+    const currentBalance = calculateBalance();
+
     if (transferType === 'deposit') {
-      // Transferir do saldo para o cofre
-      if (balance < amount) {
+      if (currentBalance < amount) {
         alert('Saldo insuficiente!');
         return;
       }
       setSavings(prev => prev + amount);
     } else {
-      // Retirar do cofre para o saldo
       if (savings < amount) {
         alert('Cofre sem saldo suficiente!');
         return;
@@ -529,126 +551,103 @@ if (!user || !dataLoaded || !authResolved) return;
     setTransferAmount('');
     setShowSavingsModal(false);
   };
+  const renderCalendar = () => {
+    const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
+    const days = [];
 
-  const handleSetGoal = (goal) => {
-    setSavingsGoal(parseFloat(goal) || 0);
-  };
-const renderCalendar = () => {
-  const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
-  const days = [];
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(<div key={`empty-${i}`} className={isMobilePortrait ? 'aspect-square' : 'h-24'} />);
+    }
 
-  // Espaços vazios antes do primeiro dia
-  for (let i = 0; i < startingDayOfWeek; i++) {
-    days.push(<div key={`empty-${i}`} />);
-  }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = getDateKey(day);
+      const balance = getDayBalance(day);
+      let balanceGradient = 'from-white/10 to-white/5';
 
-  for (let day = 1; day <= daysInMonth; day++) {
-    const key = getDateKey(day);
-    const balance = getDayBalance(day);
-let balanceGradient = 'from-white/10 to-white/5';
+      if (balance > 0) {
+        balanceGradient = 'from-emerald-400/20 to-blue-400/10';
+      } else if (balance < 0) {
+        balanceGradient = 'from-red-500/25 to-orange-500/10';
+      }
 
-if (balance > 0) {
-  balanceGradient = 'from-emerald-400/20 to-blue-400/10';
-} else if (balance < 0) {
-  balanceGradient = 'from-red-500/25 to-orange-500/10';
-}
+      const hasTransactions = transactions[key] && transactions[key].length > 0;
+      const today = new Date();
+      const isToday = day === today.getDate() && currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear();
 
-    const hasTransactions =
-      transactions[key] && transactions[key].length > 0;
-const today = new Date();
-const isToday =
-  day === today.getDate() &&
-  currentDate.getMonth() === today.getMonth() &&
-  currentDate.getFullYear() === today.getFullYear();
+      // Mostra descrição apenas se NÃO for mobile portrait
+      const showDescription = !isMobilePortrait;
 
-    days.push(
-      <div
-        key={day}
-        onClick={() => {
-          setSelectedDay(day);
-          setShowModal(true);
-        }}
-className={`
-  relative cursor-pointer h-24 p-3 rounded-2xl
-  bg-gradient-to-br ${balanceGradient}
-  backdrop-blur-md transition-all
-  ${
-    isToday
-      ? 'ring-2 ring-white/70 shadow-xl scale-[1.03]'
-      : 'shadow-md hover:brightness-110'
-  }
-`}
+      days.push(
+        <div
+          key={day}
+          onClick={() => {
+            setSelectedDay(day);
+            setShowModal(true);
+            setActiveTab('transactions');
+          }}
+          className={`
+            relative cursor-pointer ${isMobilePortrait ? 'aspect-square p-2 text-sm' : 'h-24 p-3'} rounded-2xl
+            bg-gradient-to-br ${balanceGradient}
+            backdrop-blur-md transition-all
+            ${isToday ? 'ring-2 ring-white/70 shadow-xl scale-[1.03]' : 'shadow-md hover:brightness-110'}
+            ${settings.effects.dayPulse && hasTransactions ? 'animate-pulse' : ''}
+          `}
+        >
+          <div className={`${isMobilePortrait ? 'text-xs' : 'text-sm'} font-bold text-blue-200`}>{day}</div>
 
+          {/* Descrição: só aparece em landscape ou desktop */}
+          {showDescription && hasTransactions && (
+            <div className="mt-1 text-xs text-gray-200 truncate">
+              {transactions[key][0]?.description}
+            </div>
+          )}
 
-      >
-        {/* Número do dia */}
-        <div className="text-sm font-bold text-blue-200">
-          {day}
+          {/* Indicador visual no mobile portrait */}
+          {isMobilePortrait && hasTransactions && (
+            <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" title="Há transações"></div>
+          )}
+
+          {/* Saldo do dia */}
+          {balance !== 0 && (
+            <div className={`absolute ${isMobilePortrait ? 'bottom-1 right-1 text-xs' : 'bottom-2 right-2 text-xs'} font-bold ${balance > 0 ? 'text-green-300' : 'text-red-300'}`}>
+              {balance > 0 ? '+' : '-'}R${Math.abs(balance).toFixed(0)}
+            </div>
+          )}
         </div>
+      );
+    }
 
-        {/* Descrição breve */}
-        {hasTransactions && (
-          <div className="mt-1 text-x text-gray-200 truncate">
-            {transactions[key][0]?.description}
-          </div>
-        )}
-
-        {/* Saldo do dia */}
-        {balance !== 0 && (
-          <div
-            className={`absolute bottom-2 right-2 text-x font-bold ${
-              balance > 0 ? 'text-green-300' : 'text-red-300'
-            }`}
-          >
-            {balance > 0 ? '+' : '-'}R$
-            {Math.abs(balance).toFixed(0)}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return days;
-};
-
-
+    return days;
+  };
 
   const balance = calculateBalance();
-  const { totalIncome, totalExpense, categories } = calculateMonthlyStats();
+  const { totalIncome, totalExpense } = calculateMonthlyStats();
 
-  // Tela de Loading
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="loading mb-4"></div>
-          <div className="text-pink-500 text-xl">Carregando...</div>
+          <div className="text-blue-500 text-xl">Carregando...</div>
         </div>
       </div>
     );
   }
 
-  // Tela de Login
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-900 to-red-900 flex items-center justify-center p-4">
-        <div className="bg-black border-2 border-pink-500 rounded-lg shadow-2xl p-8 max-w-md w-full text-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-red-900 flex items-center justify-center p-4">
+        <div className="bg-black border-2 border-blue-500 rounded-lg shadow-2xl p-8 max-w-md w-full text-center">
           <div className="mb-6">
-            <h1 className="text-4xl font-bold text-pink-500 mb-2">💰</h1>
-            <h1 className="text-3xl font-bold text-pink-500 mb-2">Calendário Financeiro</h1>
-            <p className="text-pink-300">Gerencie suas finanças com estilo</p>
-          </div>
-          
-          <div className="mb-8 text-left space-y-3 text-pink-200">
-            <p className="flex items-center gap-2">✅ Controle de entradas e saídas</p>
-            <p className="flex items-center gap-2">✅ Análise de gastos detalhada</p>
-            <p className="flex items-center gap-2">✅ Sincronização na nuvem</p>
-            <p className="flex items-center gap-2">✅ Lembretes e notas</p>
+            <h1 className="text-4xl font-bold text-blue-500 mb-2">💰</h1>
+            <h1 className="text-3xl font-bold text-blue-500 mb-2">Calendário Financeiro</h1>
+            <p className="text-blue-300">Gerencie suas finanças com estilo</p>
           </div>
 
-          <button onClick={handleLogin}
+          <button
+            onClick={handleLogin}
             disabled={!firebaseReady}
-            className={`w-full bg-white text-gray-800 py-3 px-6 rounded-lg font-bold flex items-center justify-center gap-3 transition-colors shadow-lg ${!firebaseReady ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}>
+            className={`w-full bg-white text-gray-800 py-3 px-6 rounded-lg font-bold flex items-center justify-center gap-3 transition-colors shadow-lg ${!firebaseReady ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+          >
             <svg width="24" height="24" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -658,32 +657,36 @@ className={`
             {firebaseReady ? 'Entrar com Google' : 'Conectando...'}
           </button>
 
-          <p className="mt-4 text-xs text-pink-400">🔒 Seus dados são salvos com segurança no Firebase</p>
+          <p className="mt-4 text-xs text-blue-400">🔒 Seus dados são salvos com segurança no Firebase</p>
           {!firebaseReady && <p className="mt-2 text-xs text-yellow-300">Conectando ao Firebase — aguardando inicialização.</p>}
         </div>
       </div>
     );
   }
 
-  // App Principal
-  // App Principal
-  return (
-    <div className={`min-h-screen ${bgClass} p-4 relative overflow-hidden ${fontClass}`}>
-      <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-        <svg width="600" height="600" viewBox="0 0 200 200" className={`text-${colors.primary}`}>
-          <g transform="translate(100,100)">
-            {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-              <ellipse key={i} cx="0" cy="-40" rx="25" ry="45" fill="currentColor" transform={`rotate(${angle})`} />
-            ))}
-            <circle cx="0" cy="0" r="15" fill="#fbbf24" />
-          </g>
-        </svg>
-      </div>
+return (
+  <div 
+    className={`min-h-screen ${bgClass} p-4 relative overflow-hidden ${fontClass} overflow-y-auto`} 
+    style={{ 
+      scrollbarWidth: 'thin', 
+      scrollbarColor: '#4B5563 #1F2937' 
+    }}
+  >
+    <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+      <svg width="600" height="600" viewBox="0 0 200 200" className={`text-${colors.primary}`}>
+        <g transform="translate(100,100)">
+          {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+            <ellipse key={i} cx="0" cy="-40" rx="25" ry="45" fill="currentColor" transform={`rotate(${angle})`} />
+          ))}
+          <circle cx="0" cy="0" r="15" fill="#fbbf24" />
+        </g>
+      </svg>
+    </div>
 
       <div className="max-w-6xl mx-auto relative z-10">
-        {/* Header Moderno */}
-        <div className={`${settings.effects.animatedGradient ? 'gradient-animate' : 'bg-gradient-to-br from-blue-300 to-darkblue-500'} rounded-2xl p-6 mb-6 shadow-2xl ${settings.effects.intenseAnimations ? 'animate-fade-in-fast' : 'animate-fade-in'}`}>
-          <div className="flex items-center justify-between mb-6">
+        {/* Header */}
+        <div className={`rounded-2xl p-6 mb-6 shadow-2xl ${settings.effects.animatedGradient ? 'animate-gradient' : 'bg-gradient-to-br from-blue-800 to-black-800'}`}>
+          <div className={`flex ${isMobilePortrait ? 'flex-col items-center gap-4' : 'items-center justify-between'} mb-6`}>
             <div className="flex items-center gap-4">
               {user.photoURL && (
                 <img src={user.photoURL} alt="Avatar" className={`w-14 h-14 rounded-2xl border-3 border-white/30 shadow-lg ${settings.effects.intenseAnimations ? 'animate-scale-in' : ''}`} />
@@ -693,150 +696,99 @@ className={`
                 <p className="text-lg text-white/80 mt-1 font-medium">{user.displayName || settings.userName}</p>
               </div>
             </div>
-<div
-  className={`flex gap-2 ${
-    isMobilePortrait
-      ? 'mt-4 justify-center flex-wrap'
-      : ''
-  }`}
->
 
-              <button onClick={() => setShowAnalytics(true)} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`} title="Análise">
+            <div className={`flex gap-2 ${isMobilePortrait ? 'justify-center flex-wrap' : ''}`}>
+              <button onClick={() => setShowAnalytics(true)} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects.ripple ? 'ripple' : ''}`} title="Análise">
                 <i data-lucide="bar-chart-3" className="w-6 h-6 text-white"></i>
               </button>
-              <button onClick={() => { setShowSavingsModal(true); setTimeout(() => lucide.createIcons(), 200); }} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`} title="Cofre">
+              <button onClick={() => setShowSavingsModal(true)} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects.ripple ? 'ripple' : ''}`} title="Cofre">
                 <i data-lucide="piggy-bank" className="w-6 h-6 text-white"></i>
               </button>
-              <button onClick={() => { setShowRecurringModal(true); setTimeout(() => lucide.createIcons(), 200); }} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`} title="Recorrentes">
+              <button onClick={() => setShowRecurringModal(true)} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects.ripple ? 'ripple' : ''}`} title="Recorrentes">
                 <i data-lucide="repeat" className="w-6 h-6 text-white"></i>
               </button>
-              <button onClick={() => { setShowSettings(true); setTimeout(() => lucide.createIcons(), 200); }} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`}>
+              <button onClick={() => setShowSettings(true)} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects.ripple ? 'ripple' : ''}`}>
                 <i data-lucide="settings" className="w-6 h-6 text-white"></i>
               </button>
-              <button onClick={handleLogout} className={`p-3 bg-red-500/20 hover:bg-red-500/30 backdrop-blur rounded-xl transition-all ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} ${settings.effects?.ripple ? 'ripple' : ''}`} title="Sair">
+              <button onClick={handleLogout} className={`p-3 bg-red-500/20 hover:bg-red-500/30 backdrop-blur rounded-xl transition-all ${settings.effects.ripple ? 'ripple' : ''}`} title="Sair">
                 <i data-lucide="log-out" className="w-6 h-6 text-red-400"></i>
               </button>
             </div>
           </div>
-          {/* Cards de Saldo Modernos */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Receitas */}
-            <div className={`bg-${colors.primary} rounded-2xl p-6 shadow-xl ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} relative overflow-hidden`}>
-              {settings.effects?.shimmer && <div className="shimmer absolute inset-0"></div>}
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-white/90">Receitas do Mês</span>
-                  <i data-lucide="trending-up" className="w-8 h-8 text-white"></i>
-                </div>
-                <div className="text-4xl font-bold text-white mb-1">
-                  R$ {totalIncome.toFixed(2)}
-                </div>
-              </div>
-            </div>
-            {/* Despesas */}
-            <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 shadow-xl ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} relative overflow-hidden`}>
-              {settings.effects?.shimmer && <div className="shimmer absolute inset-0"></div>}
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-white/90">Despesas do Mês</span>
-                  <i data-lucide="trending-down" className="w-8 h-8 text-white"></i>
-                </div>
-                <div className="text-4xl font-bold text-white mb-1">
-                  R$ {totalExpense.toFixed(2)}
-                </div>
-              </div>
-            </div>
-             {/* Saldo Total */}
-            <div className={`rounded-2xl p-6 shadow-xl ${settings.effects?.intenseAnimations ? 'card-hover-intense' : 'card-hover-minimal'} relative overflow-hidden ${settings.effects?.glow ? 'glow' : ''}`}
-              style={{ backgroundColor: `rgb(${
-                settings.colorScheme === 'pink' ? '236, 72, 153' :
-                settings.colorScheme === 'blue' ? '59, 130, 246' :
-                settings.colorScheme === 'purple' ? '168, 85, 247' :
-                settings.colorScheme === 'green' ? '16, 185, 129' :
-                '249, 115, 22'
-              })` }}
-            >
-              {settings.effects?.shimmer && <div className="shimmer absolute inset-0"></div>}
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-white/90">Saldo Total</span>
-                  <i data-lucide="wallet" className="w-8 h-8 text-white"></i>
-                </div>
-                <div className="text-4xl font-bold text-white mb-1">
-                  R$ {balance.toFixed(2)}
-                </div>
-              </div>
-            </div>
-          </div>
-       </div>
 
-{/* Calendário */}
-<div
-  className="
-    relative
-    rounded-3xl
-    p-6
-    bg-gradient-to-br from-blue-600/10 via-blue-500/70 to-blue-100/10
-    backdrop-blur-xl
-    shadow-2xl
-  "
->
-
-  {/* Cabeçalho */}
-  <div className="flex items-center justify-between mb-6">
-    <button
-      onClick={() => changeMonth(-1)}
-      className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition"
-    >
-      <i data-lucide="chevron-left" className="w-6 h-6 text-white"></i>
-    </button>
-
-    <h2 className="text-xl font-bold text-white">
-      {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-    </h2>
-
-    <button
-      onClick={() => changeMonth(1)}
-      className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition"
-    >
-      <i data-lucide="chevron-right" className="w-6 h-6 text-white"></i>
-    </button>
+{/* Cards de Saldo - Reduzidos apenas no mobile portrait, textos fixos neutros */}
+<div className={`grid gap-4 ${isMobilePortrait ? 'grid-cols-1' : 'grid-cols-3'}`}>
+  {/* Card Receitas */}
+  <div className={`bg-${colors.primary} rounded-2xl shadow-xl relative overflow-hidden ${settings.effects.shimmer ? 'shimmer-container' : ''} ${isMobilePortrait ? 'p-2' : 'p-6'}`}>
+    {settings.effects.shimmer && <div className="shimmer absolute inset-0"></div>}
+    <div className="relative z-10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-medium text-white/90 text-sm">Receitas do Mês</span> {/* Fixo: text-white/90 neutro */}
+        <i data-lucide="trending-up" className={`text-white ${isMobilePortrait ? 'w-6 h-6' : 'w-8 h-8'}`}></i>
+      </div>
+      <div className={`font-bold text-white ${isMobilePortrait ? 'text-2xl' : 'text-4xl'}`}>R$ {totalIncome.toFixed(2)}</div> {/* Fixo: text-white neutro */}
+    </div>
   </div>
 
-  {/* Dias da semana */}
-  <div className="grid grid-cols-7 text-center text-sm text-white/70 mb-3">
-    {daysOfWeek.map(day => (
-      <div key={day}>{day}</div>
-    ))}
+  {/* Card Despesas */}
+  <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-xl relative overflow-hidden ${isMobilePortrait ? 'p-2' : 'p-6'}`}>
+    {settings.effects.shimmer && <div className="shimmer absolute inset-0"></div>}
+    <div className="relative z-10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-medium text-white/90 text-sm">Despesas do Mês</span> {/* Fixo: text-white/90 neutro */}
+        <i data-lucide="trending-down" className={`text-white ${isMobilePortrait ? 'w-6 h-6' : 'w-8 h-8'}`}></i>
+      </div>
+      <div className={`font-bold text-white ${isMobilePortrait ? 'text-2xl' : 'text-4xl'}`}>R$ {totalExpense.toFixed(2)}</div> {/* Fixo: text-white neutro */}
+    </div>
   </div>
 
-  {/* Grid do calendário */}
-  <div className="grid grid-cols-7 gap-3">
-    {renderCalendar()}
+  {/* Card Saldo Total */}
+  <div className={`rounded-2xl shadow-xl relative overflow-hidden ${settings.effects.glow ? 'glow' : ''} ${isMobilePortrait ? 'p-2' : 'p-6'}`} style={{ backgroundColor: `rgb(${settings.colorScheme === 'pink' ? '236,72,153' : settings.colorScheme === 'blue' ? '59,130,246' : settings.colorScheme === 'purple' ? '168,85,247' : settings.colorScheme === 'green' ? '16,185,129' : '249,115,22'})` }}>
+    {settings.effects.shimmer && <div className="shimmer absolute inset-0"></div>}
+    <div className="relative z-10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-medium text-white/90 text-sm">Saldo Total</span> {/* Fixo: text-white/90 neutro */}
+        <i data-lucide="wallet" className={`text-white ${isMobilePortrait ? 'w-6 h-6' : 'w-8 h-8'}`}></i>
+      </div>
+      <div className={`font-bold text-white ${isMobilePortrait ? 'text-2xl' : 'text-4xl'}`}>R$ {balance.toFixed(2)}</div> {/* Fixo: text-white neutro */}
+    </div>
   </div>
 </div>
+        </div>
 
+        {/* Calendário */}
+        <div className="relative rounded-3xl p-6 bg-gradient-to-br from-blue-600/10 via-blue-500/70 to-blue-100/10 backdrop-blur-xl shadow-2xl">
+          <div className="flex items-center justify-between mb-6">
+            <button onClick={() => changeMonth(-1)} className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition">
+              <i data-lucide="chevron-left" className="w-6 h-6 text-white"></i>
+            </button>
+            <h2 className="text-xl font-bold text-white">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h2>
+            <button onClick={() => changeMonth(1)} className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition">
+              <i data-lucide="chevron-right" className="w-6 h-6 text-white"></i>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 text-center text-sm text-white/70 mb-3">
+            {daysOfWeek.map(day => <div key={day}>{day}</div>)}
+          </div>
+
+          <div className="grid grid-cols-7 gap-3">
+            {renderCalendar()}
+          </div>
+        </div>
 
         {/* Modal do Dia */}
-        {showModal && (
+        {showModal && selectedDay && (
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
-            <div
-  className="
-    relative
-    rounded-3xl
-    p-6
-    bg-gradient-to-br from-blue-600/80 via-blue-500/70 to-blue-700/80
-    backdrop-blur-xl
-    shadow-2xl
-  "
->
-
+            <div className="relative rounded-3xl p-6 bg-gradient-to-br from-blue-600/80 via-blue-500/70 to-blue-700/80 backdrop-blur-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
                 <h3 className={`text-xl font-bold ${textColorClass}`}>Dia {selectedDay} - {monthNames[currentDate.getMonth()]}</h3>
                 <button onClick={() => { setShowModal(false); setActiveTab('transactions'); }} className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
               </div>
 
-              <div className={`flex gap-2 mb-4 border-b-2 border-${colors.border}`}>
+              <div className={`flex gap-2 mb-4 border-b-2 border-${colors.primary}`}>
                 <button onClick={() => setActiveTab('transactions')} className={`px-4 py-2 font-semibold ${activeTab === 'transactions' ? `${textColorClass} border-b-2 border-${colors.primary}` : textSecondaryClass}`}>Transações</button>
                 <button onClick={() => setActiveTab('notes')} className={`px-4 py-2 font-semibold ${activeTab === 'notes' ? `${textColorClass} border-b-2 border-${colors.primary}` : textSecondaryClass}`}>Notas</button>
                 <button onClick={() => setActiveTab('reminders')} className={`px-4 py-2 font-semibold ${activeTab === 'reminders' ? `${textColorClass} border-b-2 border-${colors.primary}` : textSecondaryClass}`}>Lembretes</button>
@@ -844,11 +796,11 @@ className={`
 
               {activeTab === 'transactions' && (
                 <div>
-                  <div className={`mb-6 p-4 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
+                  <div className={`mb-6 p-4 bg-opacity-20 border border-${colors.primary} rounded-lg`} style={{ backgroundColor: colors.bg }}>
                     <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className={`w-full px-3 py-2 mb-3 border-2 border-${colors.border} ${bgClass} ${textTertiaryClass} rounded-lg`} placeholder="Descrição" />
+                      className={`w-full px-3 py-2 mb-3 border-2 border-${colors.primary} ${bgClass} ${textTertiaryClass} rounded-lg`} placeholder="Descrição" />
                     <input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                      className={`w-full px-3 py-2 mb-3 border-2 border-${colors.border} ${bgClass} ${textTertiaryClass} rounded-lg`} placeholder="Valor (R$)" />
+                      className={`w-full px-3 py-2 mb-3 border-2 border-${colors.primary} ${bgClass} ${textTertiaryClass} rounded-lg`} placeholder="Valor (R$)" />
                     <div className="flex gap-4 mb-3">
                       <label className="flex items-center">
                         <input type="radio" value="income" checked={formData.type === 'income'} onChange={(e) => setFormData({ ...formData, type: e.target.value })} className="mr-2" />
@@ -863,7 +815,7 @@ className={`
                   </div>
                   <div>
                     {transactions[getDateKey(selectedDay)]?.map((t) => (
-                      <div key={t.id} className={`flex justify-between p-3 mb-2 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
+                      <div key={t.id} className={`flex justify-between p-3 mb-2 bg-opacity-20 border border-${colors.primary} rounded-lg`} style={{ backgroundColor: colors.bg }}>
                         <div>
                           <div className={textTertiaryClass}>{t.description}</div>
                           <div className={`font-bold border-2 border-white rounded px-2 py-1 inline-block ${t.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
@@ -881,9 +833,9 @@ className={`
 
               {activeTab === 'notes' && (
                 <div>
-                  <div className={`mb-6 p-4 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
+                  <div className={`mb-6 p-4 bg-opacity-20 border border-yellow-500 rounded-lg`} style={{ backgroundColor: colors.bg }}>
                     <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)}
-                      className={`w-full px-3 py-2 mb-3 border-2 border-${colors.border} ${bgClass} ${textTertiaryClass} rounded-lg`} rows="3" placeholder="Nota..." />
+                      className={`w-full px-3 py-2 mb-3 border-2 border-yellow-500 ${bgClass} ${textTertiaryClass} rounded-lg`} rows="3" placeholder="Nota..." />
                     <button onClick={handleAddNote} className="w-full bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700 font-bold">Adicionar Nota</button>
                   </div>
                   {notes[getDateKey(selectedDay)]?.map((note) => (
@@ -899,11 +851,11 @@ className={`
 
               {activeTab === 'reminders' && (
                 <div>
-                  <div className={`mb-6 p-4 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
+                  <div className={`mb-6 p-4 bg-opacity-20 border border-blue-500 rounded-lg`} style={{ backgroundColor: colors.bg }}>
                     <input type="text" value={reminderData.text} onChange={(e) => setReminderData({ ...reminderData, text: e.target.value })}
-                      className={`w-full px-3 py-2 mb-3 border-2 border-${colors.border} ${bgClass} ${textTertiaryClass} rounded-lg`} placeholder="Lembrete" />
+                      className={`w-full px-3 py-2 mb-3 border-2 border-blue-500 ${bgClass} ${textTertiaryClass} rounded-lg`} placeholder="Lembrete" />
                     <input type="time" value={reminderData.time} onChange={(e) => setReminderData({ ...reminderData, time: e.target.value })}
-                      className={`w-full px-3 py-2 mb-3 border-2 border-${colors.border} ${bgClass} ${textTertiaryClass} rounded-lg`} />
+                      className={`w-full px-3 py-2 mb-3 border-2 border-blue-500 ${bgClass} ${textTertiaryClass} rounded-lg`} />
                     <button onClick={handleAddReminder} className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-bold">Adicionar Lembrete</button>
                   </div>
                   {reminders[getDateKey(selectedDay)]?.map((r) => (
@@ -923,7 +875,7 @@ className={`
           </div>
         )}
 
-        {/* Modal de Análise - Simplificado por espaço */}
+        {/* Modal de Análise - Simplificado */}
         {showAnalytics && (
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
             <div className={`${bgClass} border-2 border-${colors.border} rounded-lg p-6 max-w-4xl w-full`}>
@@ -948,7 +900,8 @@ className={`
             </div>
           </div>
         )}
-        {/* ===== MODAL DO COFRE ===== */}
+
+        {/* Modal do Cofre */}
         {showSavingsModal && (
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
             <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-xl p-6 max-w-2xl w-full`}>
@@ -959,7 +912,8 @@ className={`
                 </h3>
                 <button onClick={() => setShowSavingsModal(false)} className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
               </div>
-                            {/* Resumo do Cofre */}
+
+              {/* Resumo do Cofre */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className={`p-4 border-2 border-${colors.border} rounded-lg`}>
                   <div className={`text-sm ${textSecondaryClass}`}>Saldo Disponível</div>
@@ -1081,275 +1035,328 @@ className={`
             </div>
           </div>
         )}
-{/* Modal de Configurações */}
-        {showSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
-            <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto`}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className={`text-2xl font-bold ${textColorClass}`}>Configurações</h3>
-                <button onClick={() => setShowSettings(false)} className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
-              </div>
 
-              <div className="space-y-6">
-                {/* Nome do Usuário */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Nome do Usuário</label>
-                  <input type="text" value={settings.userName} onChange={(e) => setSettings({ ...settings, userName: e.target.value })}
-                    className={`w-full px-3 py-2 border-2 border-${colors.border} ${bgClass} text-${colors.tertiary} rounded-lg`} placeholder="Digite seu nome" />
-                </div>
+{/* Modal de Configurações - Com barra de rolagem neutra fixa */}
+{showSettings && (
+  <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
+    <div 
+      className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto`}
+      style={{
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#4B5563 #1F2937'  // Thumb gray-600, track gray-800 — neutro, não muda com theme
+      }}
+    >
+      <div className="flex justify-between items-center mb-6">
+        <h3 className={`text-2xl font-bold ${textColorClass}`}>Configurações</h3>
+        <button onClick={() => setShowSettings(false)} className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
+      </div>
 
-                {/* Cor de Fundo */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Cor de Fundo</label>
-                  <div className="grid grid-cols-6 gap-2">
-                    <button onClick={() => setSettings({ ...settings, bgColor: 'black' })}
-                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'black' ? 'border-white' : 'border-gray-600'} bg-black hover:border-white transition-colors`} title="Preto" />
-                    <button onClick={() => setSettings({ ...settings, bgColor: 'white' })}
-                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'white' ? 'border-gray-800' : 'border-gray-400'} bg-white hover:border-gray-800 transition-colors`} title="Branco" />
-                    <button onClick={() => setSettings({ ...settings, bgColor: 'darkGray' })}
-                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'darkGray' ? 'border-white' : 'border-gray-600'} bg-gray-900 hover:border-white transition-colors`} title="Cinza Escuro" />
-                    <button onClick={() => setSettings({ ...settings, bgColor: 'darkBlue' })}
-                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'darkBlue' ? 'border-white' : 'border-gray-600'} bg-blue-950 hover:border-white transition-colors`} title="Azul Escuro" />
-                    <button onClick={() => setSettings({ ...settings, bgColor: 'darkPurple' })}
-                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'darkPurple' ? 'border-white' : 'border-gray-600'} bg-purple-950 hover:border-white transition-colors`} title="Roxo Escuro" />
-                    <button onClick={() => setSettings({ ...settings, bgColor: 'darkGreen' })}
-                      className={`h-12 rounded-lg border-2 ${settings.bgColor === 'darkGreen' ? 'border-white' : 'border-gray-600'} bg-emerald-950 hover:border-white transition-colors`} title="Verde Escuro" />
-                  </div>
-                </div>
+      <div className="space-y-6">
+        {/* Toggle Tema Automático */}
+        <div className="flex items-center justify-between">
+          <label className={`text-sm font-medium text-${colors.secondary}`}>Tema Automático (Claro/Escuro)</label>
+          <input 
+            type="checkbox" 
+            checked={settings.autoTheme} 
+            onChange={(e) => setSettings({ ...settings, autoTheme: e.target.checked })}
+            className="w-5 h-5" 
+          />
+        </div>
 
-                {/* Esquema de Cores */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Cor Principal</label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {Object.keys(colorSchemes).map((scheme) => (
-                      <button key={scheme} onClick={() => setSettings({ ...settings, colorScheme: scheme })}
-                        className={`h-12 rounded-lg border-2 ${settings.colorScheme === scheme ? 'border-white' : 'border-gray-600'} bg-${colorSchemes[scheme].primary} hover:border-white transition-colors`} title={scheme} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Fonte */}
-                <div>
-                  <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Tipo de Fonte</label>
-                  <div className="space-y-2">
-                    <button onClick={() => setSettings({ ...settings, font: 'sans' })}
-                      className={`w-full px-4 py-3 rounded-lg border-2 ${settings.font === 'sans' ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} font-sans hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors`}>
-                      Sans Serif (Padrão)
-                    </button>
-                    <button onClick={() => setSettings({ ...settings, font: 'serif' })}
-                      className={`w-full px-4 py-3 rounded-lg border-2 ${settings.font === 'serif' ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} font-serif hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors`}>
-                      Serif (Elegante)
-                    </button>
-                    <button onClick={() => setSettings({ ...settings, font: 'mono' })}
-                      className={`w-full px-4 py-3 rounded-lg border-2 ${settings.font === 'mono' ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} font-mono hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors`}>
-                      Monospace (Técnica)
-                    </button>
-                  </div>
-                </div>
-              </div>
-{/* Efeitos Visuais */}
-                <div>
-                  <label className={`block text-lg font-semibold mb-3 text-${colors.primary}`}>
-                    ✨ Efeitos Visuais
-                  </label>
-                  
-                  {/* Presets Rápidos */}
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    <button
-                      onClick={() => applyEffectsPreset('minimal')}
-                      className={`px-4 py-3 rounded-lg border-2 ${!settings.effects.animatedGradient && !settings.effects.dayPulse ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors text-sm font-medium`}
-                    >
-                      🎨 Minimalista
-                    </button>
-                    <button
-                      onClick={() => applyEffectsPreset('balanced')}
-                      className={`px-4 py-3 rounded-lg border-2 ${settings.effects.glow && !settings.effects.animatedGradient ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors text-sm font-medium`}
-                    >
-                      ⚖️ Equilibrado
-                    </button>
-                    <button
-                      onClick={() => applyEffectsPreset('maximal')}
-                      className={`px-4 py-3 rounded-lg border-2 ${settings.effects.animatedGradient && settings.effects.dayPulse ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors text-sm font-medium`}
-                    >
-                      🚀 Maximalista
-                    </button>
-                  </div>
-
-                  {/* Toggles Individuais */}
-                  <div className="space-y-3">
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <span className={`text-sm ${textSecondaryClass}`}>Gradiente Animado no Header</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.effects.animatedGradient}
-                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, animatedGradient: e.target.checked }}))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <span className={`text-sm ${textSecondaryClass}`}>Pulsação nos Dias com Transações</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.effects.dayPulse}
-                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, dayPulse: e.target.checked }}))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <span className={`text-sm ${textSecondaryClass}`}>Efeito Shimmer nos Cards</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.effects.shimmer}
-                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, shimmer: e.target.checked }}))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <span className={`text-sm ${textSecondaryClass}`}>Glow no Cofre e Dia Atual</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.effects.glow}
-                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, glow: e.target.checked }}))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <span className={`text-sm ${textSecondaryClass}`}>Animações Intensas</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.effects.intenseAnimations}
-                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, intenseAnimations: e.target.checked }}))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <span className={`text-sm ${textSecondaryClass}`}>Confetti ao Atingir Meta</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.effects.confetti}
-                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, confetti: e.target.checked }}))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <span className={`text-sm ${textSecondaryClass}`}>Efeito Ripple nos Botões</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.effects.ripple}
-                        onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, ripple: e.target.checked }}))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-                  </div>
-                </div>
-              <button onClick={() => setShowSettings(false)}
-                className={`w-full mt-6 bg-${colors.button} text-white py-3 rounded-lg hover:bg-${colors.buttonHover} transition-colors font-bold`}>
-                Salvar Configurações
-              </button>
-            </div>
+        {/* Cor de Fundo - Com Pré-visualização */}
+        <div>
+          <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Cor de Fundo</label>
+          <div className="grid grid-cols-6 gap-2">
+            {Object.keys(bgColors).map((color) => (
+              <button 
+                key={color}
+                onClick={() => setSettings({ ...settings, bgColor: color })}
+                className={`h-12 rounded-lg border-2 ${settings.bgColor === color ? 'border-white' : 'border-gray-600'} ${bgColors[color]} hover:border-white transition-colors`} 
+                title={color.charAt(0).toUpperCase() + color.slice(1)} 
+              />
+            ))}
           </div>
-        )}
-        {/* Modal de Transações Recorrentes */}
-        {showRecurringModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
-            <div className={`${bgClass} border-2 border-${colors.border} rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className={`text-2xl font-bold ${textColorClass}`}>Transações Recorrentes</h3>
-                <button onClick={() => { setShowRecurringModal(false); setRecurringForm({ description: '', amount: '', type: 'income', dayOfMonth: '1', frequency: 'monthly' }); }}
-                  className={`${textColorClass} hover:text-${colors.secondary} text-2xl`}>✕</button>
-              </div>
-
-              {/* Formulário de Recorrentes */}
-              <div className={`mb-6 p-4 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
-                <div className="mb-3">
-                  <label className={`block text-sm font-medium mb-1 text-${colors.secondary}`}>Descrição</label>
-                  <input type="text" value={recurringForm.description} onChange={(e) => setRecurringForm({ ...recurringForm, description: e.target.value })}
-                    className={`w-full px-3 py-2 border-2 border-${colors.border} ${bgClass} text-${colors.tertiary} rounded-lg`} placeholder="Ex: Aluguel, Salário, Netflix..." />
-                </div>
-                <div className="mb-3">
-                  <label className={`block text-sm font-medium mb-1 text-${colors.secondary}`}>Valor (R$)</label>
-                  <input type="number" step="0.01" value={recurringForm.amount} onChange={(e) => setRecurringForm({ ...recurringForm, amount: e.target.value })}
-                    className={`w-full px-3 py-2 border-2 border-${colors.border} ${bgClass} text-${colors.tertiary} rounded-lg`} placeholder="0.00" />
-                </div>
-                <div className="mb-3">
-                  <label className={`block text-sm font-medium mb-1 text-${colors.secondary}`}>Dia do Mês</label>
-                  <input type="number" min="1" max="31" value={recurringForm.dayOfMonth} onChange={(e) => setRecurringForm({ ...recurringForm, dayOfMonth: e.target.value })}
-                    className={`w-full px-3 py-2 border-2 border-${colors.border} ${bgClass} text-${colors.tertiary} rounded-lg`} />
-                </div>
-                <div className="mb-3">
-                  <label className={`block text-sm font-medium mb-1 text-${colors.secondary}`}>Tipo</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input type="radio" value="income" checked={recurringForm.type === 'income'} onChange={(e) => setRecurringForm({ ...recurringForm, type: e.target.value })} className="mr-2" />
-                      <span className="text-green-500 font-medium border-2 border-white px-2 py-1 rounded">Entrada</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input type="radio" value="expense" checked={recurringForm.type === 'expense'} onChange={(e) => setRecurringForm({ ...recurringForm, type: e.target.value })} className="mr-2" />
-                      <span className="text-red-500 font-medium border-2 border-white px-2 py-1 rounded">Saída</span>
-                    </label>
-                  </div>
-                </div>
-                <button onClick={handleAddRecurring}
-                  className={`w-full bg-${colors.button} text-white py-2 rounded-lg hover:bg-${colors.buttonHover} transition-colors flex items-center justify-center gap-2 font-bold`}>
-                  <i data-lucide="plus" className="w-5 h-5"></i>
-                  Adicionar Recorrente
-                </button>
-              </div>
-
-              {/* Lista de Recorrentes */}
-              <div>
-                <h4 className={`font-semibold mb-3 text-${colors.primary}`}>Transações Cadastradas</h4>
-                {recurringTransactions.length > 0 ? (
-                  <div className="space-y-2">
-                    {recurringTransactions.map((rec) => (
-                      <div key={rec.id} className={`flex items-center justify-between p-3 bg-${colors.bg} bg-opacity-20 border border-${colors.border} rounded-lg`}>
-                        <div>
-                          <div className={`font-medium text-${colors.tertiary}`}>{rec.description}</div>
-                          <div className="text-sm text-gray-400">Todo dia {rec.dayOfMonth} do mês</div>
-                          <div className={`text-lg font-bold border-2 border-white rounded px-2 py-1 inline-block mt-1 ${rec.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
-                            {rec.type === 'income' ? '+' : '-'} R$ {rec.amount.toFixed(2)}
-                          </div>
-                        </div>
-                        <button onClick={() => handleDeleteRecurring(rec.id)} className="text-red-500 hover:text-red-300 p-2 border-2 border-white rounded">
-                          <i data-lucide="trash-2" className="w-5 h-5"></i>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className={`text-${colors.secondary} text-center py-4`}>Nenhuma transação recorrente cadastrada</p>
-                )}
-              </div>
-            </div>
+          {/* Pré-visualização */}
+          <div className="mt-2 p-2 rounded-lg" style={{ backgroundColor: bgColors[settings.bgColor] }}>
+            <p className="text-sm text-center text-gray-700">Pré-visualização do Fundo</p>
           </div>
-        )}
+        </div>
 
-        {/* Modais de Settings e Recorrentes - omitidos por espaço, mas funcionais */}
+        {/* Cor Principal - Com Pré-visualização */}
+        <div>
+          <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Cor Principal</label>
+          <div className="grid grid-cols-5 gap-2">
+            {Object.keys(colorSchemes).map((scheme) => (
+              <button 
+                key={scheme}
+                onClick={() => setSettings({ ...settings, colorScheme: scheme })}
+                className={`h-12 rounded-lg border-2 ${settings.colorScheme === scheme ? 'border-white' : 'border-gray-600'} bg-${colorSchemes[scheme].primary} hover:border-white transition-colors`} 
+                title={scheme.charAt(0).toUpperCase() + scheme.slice(1)} 
+              />
+            ))}
+          </div>
+          {/* Pré-visualização */}
+          <div className="mt-2 p-2 rounded-lg" style={{ backgroundColor: `var(--tw-bg-${colors.primary})` }}>
+            <p className="text-sm text-center text-gray-700">Pré-visualização da Cor</p>
+          </div>
+        </div>
+
+        {/* Tipo de Fonte */}
+        <div>
+          <label className={`block text-sm font-medium mb-2 text-${colors.secondary}`}>Tipo de Fonte</label>
+          <div className="space-y-2">
+            <button onClick={() => setSettings({ ...settings, font: 'sans' })} className={`w-full px-4 py-3 rounded-lg border-2 ${settings.font === 'sans' ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} font-sans hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors`}>
+              Sans Serif (Padrão)
+            </button>
+            <button onClick={() => setSettings({ ...settings, font: 'serif' })} className={`w-full px-4 py-3 rounded-lg border-2 ${settings.font === 'serif' ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} font-serif hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors`}>
+              Serif (Elegante)
+            </button>
+            <button onClick={() => setSettings({ ...settings, font: 'mono' })} className={`w-full px-4 py-3 rounded-lg border-2 ${settings.font === 'mono' ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} font-mono hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors`}>
+              Monospace (Técnica)
+            </button>
+          </div>
+        </div>
+
+        {/* Efeitos Visuais - Com Sliders */}
+        <div>
+          <label className={`block text-lg font-semibold mb-3 text-${colors.primary}`}>
+            ✨ Efeitos Visuais
+          </label>
+
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => applyEffectsPreset('minimal')} className={`px-4 py-3 rounded-lg border-2 ${!settings.effects.animatedGradient && !settings.effects.dayPulse ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors text-sm font-medium`}>
+              🎨 Minimalista
+            </button>
+            <button onClick={() => applyEffectsPreset('balanced')} className={`px-4 py-3 rounded-lg border-2 ${settings.effects.glow && !settings.effects.animatedGradient ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors text-sm font-medium`}>
+              ⚖️ Equilibrado
+            </button>
+            <button onClick={() => applyEffectsPreset('maximal')} className={`px-4 py-3 rounded-lg border-2 ${settings.effects.animatedGradient && settings.effects.dayPulse ? `border-${colors.primary} bg-${colors.bg} bg-opacity-20` : 'border-gray-600'} text-${colors.tertiary} hover:bg-${colors.hover} hover:bg-opacity-30 transition-colors text-sm font-medium`}>
+              🚀 Maximalista
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {Object.keys(settings.effects).map((effect) => (
+              <div key={effect}>
+                <label className={`block text-sm font-medium mb-1 text-${colors.secondary}`}>
+                  {effect.charAt(0).toUpperCase() + effect.slice(1).replace(/([A-Z])/g, ' $1')} (0-100%)
+                </label>
+                <input 
+                  type="range" 
+                  min="0" max="100" 
+                  value={settings.effects[effect]} 
+                  onChange={(e) => setSettings(prev => ({ ...prev, effects: { ...prev.effects, [effect]: parseInt(e.target.value) } }))}
+                  className="w-full" 
+                />
+                <span className={`text-sm ${textTertiaryClass}`}>{settings.effects[effect]}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Botão Resetar */}
+        <button onClick={() => setSettings(initialSettings)} className="w-full mt-4 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-bold">Resetar Configurações</button>
+
+        <button onClick={() => setShowSettings(false)} className={`w-full mt-2 bg-${colors.button} text-white py-3 rounded-lg hover:bg-${colors.buttonHover} transition-colors font-bold`}>
+          Salvar Configurações
+        </button>
       </div>
     </div>
-  );
+  </div>
+)}
+{/* Modal de Transações Recorrentes */}
+{showRecurringModal && (
+  <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+    <div className={`${bgClass} rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6`}>
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h3 className={`text-2xl font-bold text-${colors.secondary}`}>
+          Transações Recorrentes
+        </h3>
+        <button
+          onClick={() => {
+            setShowRecurringModal(false);
+            setEditingRecurringId(null);
+            setRecurringForm({
+              description: '',
+              amount: '',
+              type: 'income',
+              dayOfMonth: '1',
+              frequency: 'monthly',
+              repetitions: ''
+            });
+          }}
+          className="text-gray-300 hover:text-white text-2xl"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Card - Formulário */}
+      <div className={`mb-8 rounded-2xl p-5 border border-${colors.secondary}/20 bg-${colors.secondary}/10`}>
+        <h4 className="text-lg font-semibold text-gray-100 mb-4">
+          {editingRecurringId ? 'Editar recorrência' : 'Nova recorrência'}
+        </h4>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Descrição</label>
+            <input
+              type="text"
+              value={recurringForm.description}
+              onChange={e => setRecurringForm({ ...recurringForm, description: e.target.value })}
+              className={`w-full px-3 py-2 rounded-lg bg-black/30 border border-${colors.secondary}/30 text-gray-100`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Valor (R$)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={recurringForm.amount}
+              onChange={e => setRecurringForm({ ...recurringForm, amount: e.target.value })}
+              className={`w-full px-3 py-2 rounded-lg bg-black/30 border border-${colors.secondary}/30 text-gray-100`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Tipo</label>
+            <select
+              value={recurringForm.type}
+              onChange={e => setRecurringForm({ ...recurringForm, type: e.target.value })}
+              className={`w-full px-3 py-2 rounded-lg bg-black/30 border border-${colors.secondary}/30 text-gray-100`}
+            >
+              <option value="income">Receita</option>
+              <option value="expense">Despesa</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Dia do mês</label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              value={recurringForm.dayOfMonth}
+              onChange={e => setRecurringForm({ ...recurringForm, dayOfMonth: e.target.value })}
+              className={`w-full px-3 py-2 rounded-lg bg-black/30 border border-${colors.secondary}/30 text-gray-100`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Frequência</label>
+            <select
+              value={recurringForm.frequency}
+              onChange={e => setRecurringForm({ ...recurringForm, frequency: e.target.value })}
+              className={`w-full px-3 py-2 rounded-lg bg-black/30 border border-${colors.secondary}/30 text-gray-100`}
+            >
+              <option value="monthly">Mensal</option>
+              <option value="weekly">Semanal</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">
+              Repetições (0 ou vazio = infinito)
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={recurringForm.repetitions || ''}
+              onChange={e => setRecurringForm({ ...recurringForm, repetitions: e.target.value })}
+              className={`w-full px-3 py-2 rounded-lg bg-black/30 border border-${colors.secondary}/30 text-gray-100`}
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            if (editingRecurringId) {
+              setRecurringTransactions(prev =>
+                prev.map(r =>
+                  r.id === editingRecurringId
+                    ? { ...r, ...recurringForm, amount: parseFloat(recurringForm.amount) }
+                    : r
+                )
+              );
+            } else {
+              handleAddRecurring();
+            }
+
+            setEditingRecurringId(null);
+            setRecurringForm({
+              description: '',
+              amount: '',
+              type: 'income',
+              dayOfMonth: '1',
+              frequency: 'monthly',
+              repetitions: ''
+            });
+          }}
+          className={`mt-5 w-full py-2 rounded-xl bg-${colors.button} hover:bg-${colors.buttonHover} text-white font-bold`}
+        >
+          {editingRecurringId ? 'Salvar alterações' : 'Adicionar recorrente'}
+        </button>
+      </div>
+
+      {/* Card - Lista */}
+      <div className={`rounded-2xl p-5 border border-${colors.secondary}/20 bg-${colors.secondary}/10`}>
+        <h4 className="text-lg font-semibold text-gray-100 mb-4">
+          Recorrências cadastradas
+        </h4>
+
+        {recurringTransactions.length ? (
+          <div className="space-y-3">
+            {recurringTransactions.map(rec => (
+              <div
+                key={rec.id}
+                className="rounded-xl p-4 bg-black/30 border border-white/10 flex justify-between items-start"
+              >
+                <div>
+                  <div className="text-gray-100 font-medium">
+                    {rec.description}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    R$ {rec.amount.toFixed(2)} · Dia {rec.dayOfMonth} · {rec.frequency}
+                    {rec.repetitions ? ` · ${rec.repetitions}x` : ' · infinito'}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingRecurringId(rec.id);
+                      setRecurringForm(rec);
+                    }}
+                    className="text-blue-400 hover:text-blue-300"
+                  >
+                    <i data-lucide="edit" className="w-5 h-5"></i>
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteRecurring(rec.id)}
+                    className="text-red-500 hover:text-red-400"
+                  >
+                    <i data-lucide="trash-2" className="w-5 h-5"></i>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-400 text-center py-4">
+            Nenhuma recorrência cadastrada
+          </p>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+</div>
+</div>
+);
 }
-
-// Renderizar o app
+// Render
 ReactDOM.render(<FinancialCalendar />, document.getElementById('root'));
-
-// Inicializar ícones após render
-setTimeout(() => { 
-  if (window.lucide) {
-    lucide.createIcons();
-    console.log('✅ Ícones Lucide inicializados');
-  } else {
-    console.error('❌ Lucide não carregou');
-  }
-}, 500);
-
-// Re-inicializar a cada 2 segundos (temporário para debug)
-setInterval(() => {
-  if (window.lucide) lucide.createIcons();
-}, 2000);
