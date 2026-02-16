@@ -123,6 +123,25 @@ function FinancialCalendar() {
   });
 
   const [firebaseReady, setFirebaseReady] = useState(!!(window.firebaseAPI && window.firebaseAPI.signInWithGoogle));
+  const [mostrarValores, setMostrarValores] = useState(true);
+
+  useEffect(() => {
+  const salvo = localStorage.getItem("mostrarValores");
+  if (salvo !== null) {
+    setMostrarValores(JSON.parse(salvo));
+  }
+}, []);
+
+useEffect(() => {
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}, [mostrarValores]);
+
+
+useEffect(() => {
+  localStorage.setItem("mostrarValores", JSON.stringify(mostrarValores));
+}, [mostrarValores]);
 
   useEffect(() => {
     if (firebaseReady) return;
@@ -698,6 +717,7 @@ return (
             </div>
 
             <div className={`flex gap-2 ${isMobilePortrait ? 'justify-center flex-wrap' : ''}`}>
+              
               <button onClick={() => setShowAnalytics(true)} className={`p-3 bg-white/10 hover:bg-white/20 backdrop-blur rounded-xl transition-all ${settings.effects.ripple ? 'ripple' : ''}`} title="Análise">
                 <i data-lucide="bar-chart-3" className="w-6 h-6 text-white"></i>
               </button>
@@ -718,6 +738,16 @@ return (
 
 {/* Cards de Saldo - Reduzidos apenas no mobile portrait, textos fixos neutros */}
 <div className={`grid gap-4 ${isMobilePortrait ? 'grid-cols-1' : 'grid-cols-3'}`}>
+<div className="flex justify-end mb-4">
+  <button
+    onClick={() => setMostrarValores(!mostrarValores)}
+    className="bg-black/20 backdrop-blur-md text-white px-3 py-2 rounded-xl flex items-center gap-2 hover:scale-105 transition-all duration-300"
+  >
+    <i data-lucide={mostrarValores ? "eye" : "eye-off"} className="w-5 h-5"></i>
+    {mostrarValores ? "Ocultar valores" : "Mostrar valores"}
+  </button>
+</div>
+
   {/* Card Receitas */}
   <div className={`bg-${colors.primary} rounded-2xl shadow-xl relative overflow-hidden ${settings.effects.shimmer ? 'shimmer-container' : ''} ${isMobilePortrait ? 'p-2' : 'p-6'}`}>
     {settings.effects.shimmer && <div className="shimmer absolute inset-0"></div>}
@@ -726,7 +756,11 @@ return (
         <span className="font-medium text-white/90 text-sm">Receitas do Mês</span> {/* Fixo: text-white/90 neutro */}
         <i data-lucide="trending-up" className={`text-white ${isMobilePortrait ? 'w-6 h-6' : 'w-8 h-8'}`}></i>
       </div>
-      <div className={`font-bold text-white ${isMobilePortrait ? 'text-2xl' : 'text-4xl'}`}>R$ {totalIncome.toFixed(2)}</div> {/* Fixo: text-white neutro */}
+   <div className={`font-bold text-white transition-all duration-300 ${isMobilePortrait ? 'text-2xl' : 'text-4xl'} ${!mostrarValores ? 'blur-sm select-none' : ''}`}>
+  R$ {totalIncome.toFixed(2)}
+</div>
+
+ {/* Fixo: text-white neutro */}
     </div>
   </div>
 
@@ -738,7 +772,10 @@ return (
         <span className="font-medium text-white/90 text-sm">Despesas do Mês</span> {/* Fixo: text-white/90 neutro */}
         <i data-lucide="trending-down" className={`text-white ${isMobilePortrait ? 'w-6 h-6' : 'w-8 h-8'}`}></i>
       </div>
-      <div className={`font-bold text-white ${isMobilePortrait ? 'text-2xl' : 'text-4xl'}`}>R$ {totalExpense.toFixed(2)}</div> {/* Fixo: text-white neutro */}
+      <div className={`font-bold text-white transition-all duration-300 ${isMobilePortrait ? 'text-2xl' : 'text-4xl'} ${!mostrarValores ? 'blur-sm select-none' : ''}`}>
+  R$ {totalExpense.toFixed(2)}
+</div>
+ {/* Fixo: text-white neutro */}
     </div>
   </div>
 
@@ -750,7 +787,10 @@ return (
         <span className="font-medium text-white/90 text-sm">Saldo Total</span> {/* Fixo: text-white/90 neutro */}
         <i data-lucide="wallet" className={`text-white ${isMobilePortrait ? 'w-6 h-6' : 'w-8 h-8'}`}></i>
       </div>
-      <div className={`font-bold text-white ${isMobilePortrait ? 'text-2xl' : 'text-4xl'}`}>R$ {balance.toFixed(2)}</div> {/* Fixo: text-white neutro */}
+      <div className={`font-bold text-white transition-all duration-300 ${isMobilePortrait ? 'text-2xl' : 'text-4xl'} ${!mostrarValores ? 'blur-sm select-none' : ''}`}>
+  R$ {balance.toFixed(2)}
+</div>
+ {/* Fixo: text-white neutro */}
     </div>
   </div>
 </div>
